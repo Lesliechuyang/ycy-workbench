@@ -1,0 +1,1590 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>姚楚阳生活工作台</title>
+<style>
+/* ========== RESET & BASE ========== */
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --bg:#f0f2f5;
+  --sidebar-bg:#ffffff;
+  --card-bg:#ffffff;
+  --primary:#4f46e5;
+  --primary-light:#eef2ff;
+  --primary-dark:#4338ca;
+  --text:#1f2937;
+  --text-sec:#6b7280;
+  --text-light:#9ca3af;
+  --border:#e5e7eb;
+  --success:#10b981;
+  --success-light:#d1fae5;
+  --warning:#f59e0b;
+  --warning-light:#fef3c7;
+  --danger:#ef4444;
+  --danger-light:#fee2e2;
+  --shadow:0 1px 3px rgba(0,0,0,.08);
+  --shadow-md:0 4px 12px rgba(0,0,0,.1);
+  --radius:12px;
+  --radius-sm:8px;
+  --sidebar-w:230px;
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','PingFang SC','Microsoft YaHei',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6;overflow:hidden;height:100vh;}
+
+/* ========== SIDEBAR ========== */
+#sidebar{position:fixed;left:0;top:0;width:var(--sidebar-w);height:100vh;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;box-shadow:1px 0 4px rgba(0,0,0,.03);}
+.sidebar-header{padding:24px 20px 18px;border-bottom:1px solid var(--border);}
+.sidebar-header h1{font-size:17px;font-weight:700;color:var(--text);}
+.sidebar-header p{font-size:12px;color:var(--text-light);margin-top:2px;}
+.nav-list{flex:1;overflow-y:auto;padding:10px 0;}
+.nav-list::-webkit-scrollbar{width:4px;}
+.nav-list::-webkit-scrollbar-thumb{background:#ddd;border-radius:2px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:11px 20px;cursor:pointer;color:var(--text-sec);font-size:14px;font-weight:500;transition:all .15s;border-left:3px solid transparent;}
+.nav-item:hover{background:var(--primary-light);color:var(--primary);}
+.nav-item.active{background:var(--primary-light);color:var(--primary);border-left-color:var(--primary);font-weight:600;}
+.nav-item .icon{font-size:18px;width:22px;text-align:center;flex-shrink:0;}
+.sidebar-footer{padding:12px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--text-light);text-align:center;}
+
+/* ========== MAIN CONTENT ========== */
+#main{margin-left:var(--sidebar-w);height:100vh;overflow-y:auto;padding:24px 28px;}
+#main::-webkit-scrollbar{width:6px;}
+#main::-webkit-scrollbar-thumb{background:#ccc;border-radius:3px;}
+.section{display:none;animation:fadeIn .25s ease;}
+.section.active{display:block;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.section-title{font-size:22px;font-weight:700;margin-bottom:18px;display:flex;align-items:center;gap:8px;}
+
+/* ========== CARDS ========== */
+.card{background:var(--card-bg);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow);margin-bottom:16px;}
+.card-title{font-size:15px;font-weight:600;margin-bottom:14px;color:var(--text);display:flex;align-items:center;gap:6px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;}
+@media(max-width:900px){.grid-2,.grid-3{grid-template-columns:1fr;}}
+
+/* ========== MOBILE ========== */
+.mobile-header{display:none;}
+#backdrop{display:none;}
+@media(max-width:768px){
+  .mobile-header{display:flex;align-items:center;gap:12px;padding:12px 16px;background:#fff;border-bottom:1px solid var(--border);position:fixed;top:0;left:0;right:0;z-index:101;box-shadow:0 1px 3px rgba(0,0,0,.06);}
+  .mobile-header .hamburger{font-size:24px;cursor:pointer;background:none;border:none;padding:6px 10px;color:var(--text);line-height:1;border-radius:6px;transition:background .15s;}
+  .mobile-header .hamburger:hover{background:#f3f4f6;}
+  .mobile-header .m-title{font-size:16px;font-weight:700;color:var(--text);}
+  #sidebar{transform:translateX(-100%);transition:transform .28s cubic-bezier(.4,0,.2,1);box-shadow:2px 0 16px rgba(0,0,0,.15);z-index:110;will-change:transform;}
+  #sidebar.open{transform:translateX(0);}
+  #backdrop{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:105;transition:opacity .25s;opacity:0;pointer-events:none;}
+  #backdrop.show{display:block;opacity:1;pointer-events:auto;}
+  #main{margin-left:0;padding:60px 14px 24px;}
+  .section-title{font-size:18px;}
+  .card{padding:16px;}
+  .grid-3{grid-template-columns:1fr 1fr;}
+  .study-timer{flex-direction:column;align-items:flex-start;gap:12px;}
+  .study-timer .timer-display{font-size:28px;}
+  .inline-form,.add-row{flex-direction:column;}
+  .inline-form input,.add-row input,.inline-form select,.add-row select{min-width:100%;}
+  .expense-cat{gap:6px;}
+  .expense-cat-item{padding:8px 12px;font-size:13px;}
+  .weight-chart{overflow-x:auto;padding-bottom:6px;}
+  .week-grid{gap:3px;}
+  .week-day{padding:8px 2px;}
+  .week-day .day-label{font-size:9px;}
+  #navList{padding-top:6px;}
+  .nav-item{padding:13px 20px;}
+  .toast{top:auto;bottom:80px;right:12px;left:12px;text-align:center;}
+}
+
+/* ========== FORMS ========== */
+input[type=text],input[type=number],input[type=date],input[type=password],textarea,select{
+  width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);
+  font-size:14px;font-family:inherit;background:#fff;color:var(--text);transition:border-color .15s;outline:none;
+}
+input:focus,textarea:focus,select:focus{border-color:var(--primary);box-shadow:0 0 0 3px rgba(79,70,229,.1);}
+textarea{resize:vertical;min-height:60px;}
+label{font-size:13px;font-weight:500;color:var(--text-sec);display:block;margin-bottom:4px;}
+
+/* ========== BUTTONS ========== */
+.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 16px;border:none;border-radius:var(--radius-sm);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;font-family:inherit;}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-primary:hover{background:var(--primary-dark);}
+.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text-sec);}
+.btn-outline:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-light);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.btn-danger{background:var(--danger-light);color:var(--danger);}
+.btn-danger:hover{background:var(--danger);color:#fff;}
+.btn-success{background:var(--success);color:#fff;}
+
+/* ========== TODO CHECKBOX ========== */
+.todo-item{display:flex;align-items:center;gap:10px;padding:9px 12px;background:#f9fafb;border-radius:var(--radius-sm);margin-bottom:6px;transition:background .15s;}
+.todo-item:hover{background:#f3f4f6;}
+.todo-item input[type=checkbox]{width:18px;height:18px;accent-color:var(--primary);cursor:pointer;flex-shrink:0;}
+.todo-item .todo-text{flex:1;font-size:14px;}
+.todo-item.done .todo-text{text-decoration:line-through;color:var(--text-light);}
+.todo-item .del-btn{opacity:0;transition:opacity .15s;background:none;border:none;color:var(--danger);cursor:pointer;font-size:16px;padding:0 4px;}
+.todo-item:hover .del-btn{opacity:1;}
+
+/* ========== PROGRESS BAR ========== */
+.progress-wrap{margin:8px 0;}
+.progress-label{display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px;}
+.progress-label .val{font-weight:600;color:var(--primary);}
+.progress-bar{height:8px;background:#e5e7eb;border-radius:4px;overflow:hidden;}
+.progress-fill{height:100%;background:var(--primary);border-radius:4px;transition:width .4s ease;}
+
+/* ========== TAG / BADGE ========== */
+.tag{display:inline-block;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:600;}
+.tag-green{background:var(--success-light);color:#065f46;}
+.tag-orange{background:var(--warning-light);color:#92400e;}
+.tag-red{background:var(--danger-light);color:#991b1b;}
+.tag-blue{background:var(--primary-light);color:var(--primary);}
+.tag-gray{background:#f3f4f6;color:var(--text-sec);}
+
+/* ========== TABLE ========== */
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;padding:8px 10px;border-bottom:2px solid var(--border);font-weight:600;color:var(--text-sec);font-size:12px;text-transform:uppercase;letter-spacing:.5px;}
+td{padding:8px 10px;border-bottom:1px solid var(--border);}
+tr:hover td{background:#f9fafb;}
+
+/* ========== MISC ========== */
+.stat-box{background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:var(--radius);padding:16px;text-align:center;}
+.stat-box .num{font-size:28px;font-weight:800;color:var(--primary);}
+.stat-box .label{font-size:12px;color:var(--text-sec);margin-top:2px;}
+.stat-box.green{background:linear-gradient(135deg,#ecfdf5,#d1fae5);}
+.stat-box.green .num{color:#065f46;}
+.stat-box.orange{background:linear-gradient(135deg,#fffbeb,#fef3c7);}
+.stat-box.orange .num{color:#92400e;}
+.stat-box.red{background:linear-gradient(135deg,#fef2f2,#fee2e2);}
+.stat-box.red .num{color:#991b1b;}
+
+.empty-hint{text-align:center;color:var(--text-light);padding:24px;font-size:13px;}
+
+.category-tab{display:inline-block;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;margin-right:6px;margin-bottom:6px;border:1px solid var(--border);color:var(--text-sec);background:#fff;}
+.category-tab.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+.category-tab:hover:not(.active){border-color:var(--primary);color:var(--primary);}
+
+.insight-card{border-left:3px solid;padding:12px 14px;background:#f9fafb;border-radius:0 8px 8px 0;margin-bottom:8px;}
+.insight-card .meta{display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;}
+.insight-card .cat{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.insight-card .heat{font-size:11px;}
+.insight-card .content{font-size:14px;line-height:1.5;}
+.insight-card .script{font-size:12px;color:var(--text-sec);margin-top:4px;font-style:italic;}
+
+.memo-item{background:#fffde8;border-left:3px solid #fbbf24;padding:10px 14px;border-radius:0 8px 8px 0;margin-bottom:8px;position:relative;}
+.memo-item .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;opacity:0;transition:opacity .15s;}
+.memo-item:hover .del-btn{opacity:1;}
+.memo-item .memo-text{font-size:14px;line-height:1.5;padding-right:20px;}
+.memo-item .memo-time{font-size:11px;color:var(--text-light);margin-top:4px;}
+
+.record-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--border);}
+.record-row:last-child{border-bottom:none;}
+.record-row .r-icon{font-size:18px;}
+.record-row .r-info{flex:1;}
+.record-row .r-info .r-title{font-size:13px;font-weight:500;}
+.record-row .r-info .r-sub{font-size:11px;color:var(--text-light);}
+.record-row .r-val{font-weight:700;font-size:14px;}
+
+.weight-chart{height:120px;display:flex;align-items:flex-end;gap:4px;padding:10px 0;border-bottom:1px solid var(--border);overflow-x:auto;}
+.weight-bar{flex-shrink:0;width:30px;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.weight-bar .bar{width:100%;background:var(--primary);border-radius:3px 3px 0 0;min-height:4px;transition:height .4s;}
+.weight-bar .bar-label{font-size:10px;color:var(--text-light);white-space:nowrap;}
+
+.toast{position:fixed;top:20px;right:20px;background:#1f2937;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;z-index:9999;opacity:0;transform:translateY(-10px);transition:all .25s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:10px 0;}
+.week-day{text-align:center;padding:8px 4px;border-radius:6px;font-size:12px;}
+.week-day .day-label{font-size:10px;color:var(--text-light);margin-bottom:2px;}
+.week-day .day-status{font-size:16px;}
+.week-day.done{background:var(--success-light);}
+.week-day.miss{background:var(--danger-light);}
+.week-day.none{background:#f3f4f6;}
+
+.sync-btn{position:relative;overflow:hidden;}
+.sync-btn.syncing{pointer-events:none;opacity:.6;}
+.sync-btn .spin{display:none;}
+.sync-btn.syncing .spin{display:inline-block;animation:spin 1s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+.add-row{display:flex;gap:8px;margin-bottom:10px;}
+.add-row input,.add-row select{flex:1;}
+.add-row .btn{flex-shrink:0;}
+
+.expense-cat{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;}
+.expense-cat-item{display:flex;align-items:center;gap:6px;padding:6px 12px;background:#f9fafb;border-radius:20px;font-size:13px;cursor:pointer;transition:all .15s;border:1px solid transparent;}
+.expense-cat-item:hover{background:var(--primary-light);}
+.expense-cat-item.active{background:var(--primary);color:#fff;border-color:var(--primary);}
+
+.savings-goal{display:flex;align-items:center;gap:12px;padding:10px;background:#f9fafb;border-radius:8px;margin-bottom:8px;}
+.savings-goal .goal-icon{font-size:24px;}
+.savings-goal .goal-info{flex:1;}
+.savings-goal .goal-info .goal-name{font-size:14px;font-weight:600;}
+.savings-goal .goal-info .goal-progress{font-size:12px;color:var(--text-sec);}
+.savings-goal .goal-amount{font-weight:700;color:var(--primary);}
+
+.word-card{background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:10px;padding:14px;margin-bottom:8px;}
+.word-card .word{font-size:18px;font-weight:700;color:var(--primary);}
+.word-card .phonetic{font-size:13px;color:var(--text-sec);margin:2px 0;}
+.word-card .meaning{font-size:14px;}
+.word-card .word-del{float:right;cursor:pointer;color:var(--danger);font-size:14px;opacity:0;transition:opacity .15s;}
+.word-card:hover .word-del{opacity:1;}
+
+.study-timer{display:flex;align-items:center;gap:16px;background:linear-gradient(135deg,#f0f4ff,#e8eeff);border-radius:12px;padding:20px;}
+.study-timer .timer-display{font-size:36px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;}
+
+.review-entry{border:1px solid var(--border);border-radius:8px;padding:14px;margin-bottom:10px;}
+.review-entry .review-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.review-entry .review-title{font-size:14px;font-weight:600;}
+.review-entry .review-date{font-size:12px;color:var(--text-light);}
+.review-entry .review-data{display:flex;gap:16px;margin-bottom:8px;}
+.review-entry .review-data .r-d-item{font-size:13px;}
+.review-entry .review-data .r-d-item span{font-weight:700;color:var(--primary);}
+.review-entry .review-pros-cons{font-size:13px;line-height:1.6;}
+.review-entry .review-pros-cons .pros{color:#065f46;}
+.review-entry .review-pros-cons .cons{color:#991b1b;}
+
+.inline-form{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.inline-form input{flex:1;min-width:120px;}
+</style>
+</head>
+<body>
+
+<!-- ========== MOBILE HEADER ========== -->
+<div class="mobile-header">
+  <button class="hamburger" onclick="toggleSidebar()">☰</button>
+  <span class="m-title">姚楚阳生活工作台</span>
+</div>
+<div id="backdrop" onclick="toggleSidebar()"></div>
+
+<!-- ========== SIDEBAR ========== -->
+<div id="sidebar">
+  <div class="sidebar-header">
+    <h1>姚楚阳生活工作台</h1>
+    <p>个人成长管理系统</p>
+  </div>
+  <nav class="nav-list" id="navList">
+    <div class="nav-item active" data-section="plan"><span class="icon">📋</span>每日计划</div>
+    <div class="nav-item" data-section="inspiration"><span class="icon">💡</span>选题每日灵感</div>
+    <div class="nav-item" data-section="review"><span class="icon">📊</span>内容复盘</div>
+    <div class="nav-item" data-section="memo"><span class="icon">📝</span>备忘录</div>
+    <div class="nav-item" data-section="english"><span class="icon">🌍</span>英语学习</div>
+    <div class="nav-item" data-section="fitness"><span class="icon">💪</span>健身打卡</div>
+    <div class="nav-item" data-section="savings"><span class="icon">💰</span>存钱计划</div>
+    <div class="nav-item" data-section="accounting"><span class="icon">🧾</span>每日记账</div>
+  </nav>
+  <div class="sidebar-footer">WorkBuddy · 本地数据持久化</div>
+</div>
+
+<!-- ========== MAIN ========== -->
+<div id="main">
+
+<!-- ===== 每日计划 ===== -->
+<div class="section active" id="sec-plan">
+  <div class="section-title">📋 每日计划</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">✅ 当日待办事项 <span id="planDateLabel" style="font-size:12px;color:var(--text-light);font-weight:400;margin-left:auto;"></span></div>
+      <div class="add-row">
+        <input type="text" id="planInput" placeholder="添加待办事项..." onkeydown="if(event.key==='Enter')Plan.add()">
+        <button class="btn btn-primary btn-sm" onclick="Plan.add()">添加</button>
+      </div>
+      <div id="planList"></div>
+      <div id="planEmpty" class="empty-hint">暂无待办事项，添加一个开始你的一天</div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">📈 本周完成率</div>
+        <div id="weekProgress"></div>
+        <div class="progress-wrap" style="margin-top:14px;">
+          <div class="progress-label"><span>本周总完成率</span><span class="val" id="weekRate">0%</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="weekRateBar" style="width:0%"></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">☁️ 云端同步</div>
+        <p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">将所有数据同步到手机云端，跨设备查看。</p>
+        <button class="btn btn-primary sync-btn" id="syncBtn" onclick="Plan.sync()">
+          <span class="spin">⟳</span><span>同步到手机云端</span>
+        </button>
+        <p style="font-size:12px;color:var(--text-light);margin-top:8px;" id="syncStatus">上次同步：从未</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 选题每日灵感 ===== -->
+<div class="section" id="sec-inspiration">
+  <div class="section-title">💡 选题每日灵感</div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">⚡ 灵感速记</div>
+      <textarea id="inspireInput" rows="3" placeholder="突然想到什么？赶紧记下来..." style="margin-bottom:10px;"></textarea>
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <select id="inspireCat" style="width:auto;">
+          <option value="干货">干货</option>
+          <option value="颜值">颜值</option>
+          <option value="日常">日常</option>
+          <option value="吐槽">吐槽</option>
+          <option value="好物">好物</option>
+        </select>
+        <select id="inspireHeat" style="width:auto;">
+          <option value="🔥🔥🔥">🔥🔥🔥 高热度</option>
+          <option value="🔥🔥">🔥🔥 中热度</option>
+          <option value="🔥">🔥 待观察</option>
+        </select>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="Inspiration.add()">记录灵感</button>
+    </div>
+    <div class="card">
+      <div class="card-title">🎬 拍摄脚本草稿</div>
+      <textarea id="scriptDraft" rows="8" placeholder="在这里写拍摄脚本草稿...&#10;&#10;开场：&#10;正文：&#10;结尾/CTA：" style="margin-bottom:10px;font-family:monospace;font-size:13px;line-height:1.8;"></textarea>
+      <button class="btn btn-outline btn-sm" onclick="Inspiration.saveScript()">保存草稿</button>
+      <span id="scriptSaved" style="font-size:12px;color:var(--success);margin-left:8px;display:none;">已保存 ✓</span>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📂 爆款选题库</div>
+    <div id="catTabs" style="margin-bottom:14px;">
+      <span class="category-tab active" data-cat="all">全部</span>
+      <span class="category-tab" data-cat="干货">干货</span>
+      <span class="category-tab" data-cat="颜值">颜值</span>
+      <span class="category-tab" data-cat="日常">日常</span>
+      <span class="category-tab" data-cat="吐槽">吐槽</span>
+      <span class="category-tab" data-cat="好物">好物</span>
+    </div>
+    <div id="inspireList"></div>
+    <div id="inspireEmpty" class="empty-hint">还没有灵感记录，快去捕捉你的创意吧</div>
+  </div>
+</div>
+
+<!-- ===== 内容复盘 ===== -->
+<div class="section" id="sec-review">
+  <div class="section-title">📊 内容复盘</div>
+  <div class="card">
+    <div class="card-title">➕ 记录新作品数据</div>
+    <div class="inline-form">
+      <input type="text" id="reviewTitle" placeholder="作品标题" style="flex:2;">
+      <input type="date" id="reviewDate">
+      <input type="number" id="reviewViews" placeholder="播放量" style="width:90px;">
+      <input type="number" id="reviewLikes" placeholder="点赞" style="width:70px;">
+      <input type="number" id="reviewFans" placeholder="涨粉" style="width:70px;">
+      <button class="btn btn-primary btn-sm" onclick="Review.add()">记录</button>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📈 作品数据总览</div>
+      <div class="grid-3" style="margin-bottom:14px;">
+        <div class="stat-box"><div class="num" id="totalViews">0</div><div class="label">总播放量</div></div>
+        <div class="stat-box green"><div class="num" id="totalLikes">0</div><div class="label">总点赞</div></div>
+        <div class="stat-box orange"><div class="num" id="totalFans">0</div><div class="label">总涨粉</div></div>
+      </div>
+      <div id="reviewList"></div>
+      <div id="reviewEmpty" class="empty-hint">还没有作品记录</div>
+    </div>
+    <div class="card">
+      <div class="card-title">💡 优缺点总结 & 优化方案</div>
+      <div style="margin-bottom:12px;">
+        <label>✅ 优点</label>
+        <textarea id="reviewPros" rows="3" placeholder="这条作品做得好的地方..."></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>❌ 不足</label>
+        <textarea id="reviewCons" rows="3" placeholder="需要改进的地方..."></textarea>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label>🎯 下期优化方案</label>
+        <textarea id="reviewOptimize" rows="3" placeholder="下一条要怎么调整..."></textarea>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="Review.saveSummary()">保存复盘总结</button>
+      <span id="summarySaved" style="font-size:12px;color:var(--success);margin-left:8px;display:none;">已保存 ✓</span>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 备忘录 ===== -->
+<div class="section" id="sec-memo">
+  <div class="section-title">📝 备忘录</div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">📌 随手记 / 待办琐事</div>
+        <div class="add-row">
+          <input type="text" id="memoInput" placeholder="写下你想记住的事..." onkeydown="if(event.key==='Enter')Memo.add()">
+          <button class="btn btn-primary btn-sm" onclick="Memo.add()">记下</button>
+        </div>
+        <div id="memoList"></div>
+        <div id="memoEmpty" class="empty-hint">没有备忘，你的记性很好 😄</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🛒 购物清单</div>
+        <div class="add-row">
+          <input type="text" id="shopInput" placeholder="要买的东西..." onkeydown="if(event.key==='Enter')Memo.addShop()">
+          <button class="btn btn-outline btn-sm" onclick="Memo.addShop()">加入</button>
+        </div>
+        <div id="shopList"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">🔐 重要信息归档</div>
+        <p style="font-size:12px;color:var(--text-light);margin-bottom:10px;">⚠️ 仅本地存储，不上传任何服务器。请勿存储银行卡完整信息。</p>
+        <div style="margin-bottom:8px;">
+          <label>平台 / 用途</label>
+          <input type="text" id="acctPlatform" placeholder="如：小红书账号 / 某平台密码">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>账号</label>
+          <input type="text" id="acctUser" placeholder="用户名 / 邮箱 / 手机号">
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>密码 / 密钥</label>
+          <div style="display:flex;gap:6px;">
+            <input type="password" id="acctPass" placeholder="••••••••">
+            <button class="btn btn-outline btn-sm" onclick="Memo.togglePass()">👁</button>
+          </div>
+        </div>
+        <div style="margin-bottom:8px;">
+          <label>备注</label>
+          <input type="text" id="acctNote" placeholder="绑定手机 / 绑定邮箱等">
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="Memo.addAccount()">保存归档</button>
+        <div id="acctList" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 英语学习 ===== -->
+<div class="section" id="sec-english">
+  <div class="section-title">🌍 英语学习</div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">📖 每日单词打卡</div>
+        <div class="inline-form">
+          <input type="text" id="wordInput" placeholder="单词" style="flex:1;">
+          <input type="text" id="phoneticInput" placeholder="/音标/" style="flex:1;">
+          <input type="text" id="meaningInput" placeholder="释义" style="flex:2;">
+          <button class="btn btn-primary btn-sm" onclick="English.addWord()">添加</button>
+        </div>
+        <div id="wordList"></div>
+        <div id="wordEmpty" class="empty-hint">还没背单词，开始今天的打卡吧</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🗣️ 口语跟读练习</div>
+        <div class="add-row">
+          <input type="text" id="speakInput" placeholder="跟读的句子..." onkeydown="if(event.key==='Enter')English.addSpeak()">
+          <button class="btn btn-outline btn-sm" onclick="English.addSpeak()">记录</button>
+        </div>
+        <div id="speakList"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">⏱️ 学习时长统计</div>
+        <div class="study-timer">
+          <div>
+            <div class="timer-display" id="timerDisplay">00:00:00</div>
+            <div style="font-size:12px;color:var(--text-sec);margin-top:4px;">今日学习时长</div>
+          </div>
+          <div style="margin-left:auto;">
+            <button class="btn btn-primary btn-sm" id="timerBtn" onclick="English.toggleTimer()">开始计时</button>
+            <button class="btn btn-outline btn-sm" onclick="English.resetTimer()">重置</button>
+          </div>
+        </div>
+        <div class="grid-3" style="margin-top:14px;">
+          <div class="stat-box"><div class="num" id="todayMinutes">0</div><div class="label">今日(分钟)</div></div>
+          <div class="stat-box green"><div class="num" id="weekMinutes">0</div><div class="label">本周(分钟)</div></div>
+          <div class="stat-box orange"><div class="num" id="totalWords">0</div><div class="label">累计单词</div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📚 今日任务</div>
+        <div id="engTaskList">
+          <div class="todo-item"><input type="checkbox" onchange="English.checkTask(this,0,'阅读任务')"><span class="todo-text">📖 阅读任务</span></div>
+          <div class="todo-item"><input type="checkbox" onchange="English.checkTask(this,1,'听力任务')"><span class="todo-text">🎧 听力任务</span></div>
+          <div class="todo-item"><input type="checkbox" onchange="English.checkTask(this,2,'口语练习')"><span class="todo-text">🗣️ 口语练习</span></div>
+          <div class="todo-item"><input type="checkbox" onchange="English.checkTask(this,3,'写作练习')"><span class="todo-text">✍️ 写作练习</span></div>
+        </div>
+        <div class="week-grid" style="margin-top:12px;">
+          <div class="week-day none"><div class="day-label">周一</div><div class="day-status" id="engDay0">○</div></div>
+          <div class="week-day none"><div class="day-label">周二</div><div class="day-status" id="engDay1">○</div></div>
+          <div class="week-day none"><div class="day-label">周三</div><div class="day-status" id="engDay2">○</div></div>
+          <div class="week-day none"><div class="day-label">周四</div><div class="day-status" id="engDay3">○</div></div>
+          <div class="week-day none"><div class="day-label">周五</div><div class="day-status" id="engDay4">○</div></div>
+          <div class="week-day none"><div class="day-label">周六</div><div class="day-status" id="engDay5">○</div></div>
+          <div class="week-day none"><div class="day-label">周日</div><div class="day-status" id="engDay6">○</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 健身打卡 ===== -->
+<div class="section" id="sec-fitness">
+  <div class="section-title">💪 健身打卡</div>
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div class="stat-box green"><div class="num" id="fitTotalSessions">0</div><div class="label">总训练次数</div></div>
+    <div class="stat-box orange"><div class="num" id="fitWeekSessions">0</div><div class="label">本周训练</div></div>
+    <div class="stat-box"><div class="num" id="fitTotalMinutes">0</div><div class="label">总运动时长(分)</div></div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">🏋️ 今日训练打卡</div>
+        <div class="inline-form">
+          <select id="fitType" style="flex:1;">
+            <option value="有氧">🏃 有氧</option>
+            <option value="力量">💪 力量</option>
+            <option value="拉伸">🧘 拉伸</option>
+          </select>
+          <input type="text" id="fitItem" placeholder="训练项目" style="flex:2;">
+          <input type="number" id="fitDuration" placeholder="时长(分)" style="width:90px;">
+          <button class="btn btn-primary btn-sm" onclick="Fitness.add()">打卡</button>
+        </div>
+        <div id="fitList"></div>
+        <div id="fitEmpty" class="empty-hint">今天还没运动，动起来！</div>
+      </div>
+      <div class="card">
+        <div class="card-title">🍽️ 饮食简单记录</div>
+        <div class="inline-form">
+          <select id="dietType" style="flex:1;">
+            <option value="早餐">🌅 早餐</option>
+            <option value="午餐">☀️ 午餐</option>
+            <option value="晚餐">🌙 晚餐</option>
+            <option value="加餐">🍎 加餐</option>
+          </select>
+          <input type="text" id="dietContent" placeholder="吃了什么..." style="flex:2;">
+          <button class="btn btn-outline btn-sm" onclick="Fitness.addDiet()">记录</button>
+        </div>
+        <div id="dietList"></div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">⚖️ 体重 & 围度记录</div>
+        <div class="inline-form">
+          <input type="number" id="weightInput" placeholder="体重(kg)" style="width:100px;">
+          <input type="number" id="waistInput" placeholder="腰围(cm)" style="width:100px;">
+          <input type="number" id="chestInput" placeholder="胸围(cm)" style="width:100px;">
+          <button class="btn btn-primary btn-sm" onclick="Fitness.addMeasure()">记录</button>
+        </div>
+        <div id="weightChart" class="weight-chart"></div>
+        <div id="measureList"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 存钱计划 ===== -->
+<div class="section" id="sec-savings">
+  <div class="section-title">💰 存钱计划</div>
+  <div class="card">
+    <div class="card-title">🎯 存钱目标设置</div>
+    <div class="grid-3">
+      <div>
+        <label>总目标金额 (¥)</label>
+        <input type="number" id="saveTotalGoal" placeholder="如：50000" oninput="Savings.updateGoals()">
+      </div>
+      <div>
+        <label>月度储蓄目标 (¥)</label>
+        <input type="number" id="saveMonthlyGoal" placeholder="如：3000" oninput="Savings.updateGoals()">
+      </div>
+      <div>
+        <label>本次存入金额 (¥)</label>
+        <input type="number" id="saveAddAmount" placeholder="如：500">
+      </div>
+    </div>
+    <button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="Savings.deposit()">💾 存入</button>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">📊 存钱进度</div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>总目标进度</span><span class="val" id="saveProgressText">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="saveProgressBar" style="width:0%;background:var(--success);"></div></div>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-label"><span>本月目标进度</span><span class="val" id="saveMonthProgressText">0 / 0</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="saveMonthProgressBar" style="width:0%;background:var(--warning);"></div></div>
+      </div>
+      <div class="grid-3" style="margin-top:16px;">
+        <div class="stat-box green"><div class="num" id="saveTotalSaved">¥0</div><div class="label">已存金额</div></div>
+        <div class="stat-box orange"><div class="num" id="saveRemaining">¥0</div><div class="label">距离目标</div></div>
+        <div class="stat-box"><div class="num" id="savePercent">0%</div><div class="label">完成度</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">📌 攒钱小目标拆分</div>
+      <div class="inline-form">
+        <input type="text" id="goalName" placeholder="小目标名称 如：新手机" style="flex:2;">
+        <input type="number" id="goalAmount" placeholder="目标金额" style="flex:1;">
+        <button class="btn btn-primary btn-sm" onclick="Savings.addGoal()">添加</button>
+      </div>
+      <div id="goalList"></div>
+      <div id="goalEmpty" class="empty-hint">还没有设置小目标</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">📝 存款记录</div>
+    <div id="saveLog"></div>
+  </div>
+</div>
+
+<!-- ===== 每日记账 ===== -->
+<div class="section" id="sec-accounting">
+  <div class="section-title">🧾 每日记账</div>
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div class="stat-box"><div class="num" id="accTodayIn">¥0</div><div class="label">今日收入</div></div>
+    <div class="stat-box red"><div class="num" id="accTodayOut">¥0</div><div class="label">今日支出</div></div>
+    <div class="stat-box green"><div class="num" id="accMonthBalance">¥0</div><div class="label">本月结余</div></div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">➕ 记一笔</div>
+        <div style="margin-bottom:10px;">
+          <label>类型</label>
+          <div style="display:flex;gap:8px;">
+            <span class="expense-cat-item active" id="typeOut" onclick="Accounting.setType('out')">💸 支出</span>
+            <span class="expense-cat-item" id="typeIn" onclick="Accounting.setType('in')">💵 收入</span>
+          </div>
+        </div>
+        <div style="margin-bottom:10px;">
+          <label>分类</label>
+          <div class="expense-cat" id="catSelector"></div>
+        </div>
+        <div class="inline-form">
+          <input type="number" id="accAmount" placeholder="金额" style="width:100px;">
+          <input type="text" id="accNote" placeholder="备注（选填）" style="flex:2;">
+          <button class="btn btn-primary btn-sm" onclick="Accounting.add()">记入</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📋 今日明细</div>
+        <div id="accTodayList"></div>
+        <div id="accTodayEmpty" class="empty-hint">今天还没有记账记录</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">📊 本月支出分类</div>
+        <div id="accCatChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📅 本月收支汇总</div>
+        <table>
+          <tr><th>项目</th><th>金额</th></tr>
+          <tr><td>💰 本月总收入</td><td id="accMonthIn" style="font-weight:700;color:var(--success);">¥0</td></tr>
+          <tr><td>💸 本月总支出</td><td id="accMonthOut" style="font-weight:700;color:var(--danger);">¥0</td></tr>
+          <tr><td>📊 本月结余</td><td id="accMonthBal" style="font-weight:700;color:var(--primary);">¥0</td></tr>
+          <tr><td>📈 日均支出</td><td id="accDailyAvg">¥0</td></tr>
+        </table>
+        <div id="overspendAlert"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main -->
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ========== UTIL ========== */
+const Store = {
+  get(key, def){ try{ const v = localStorage.getItem('ycy_'+key); return v?JSON.parse(v):def; }catch(e){ return def; } },
+  set(key, val){ localStorage.setItem('ycy_'+key, JSON.stringify(val)); },
+  today(){ return new Date().toISOString().slice(0,10); },
+  weekStart(){ const d=new Date(); const day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); },
+  toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
+};
+
+/* ========== MOBILE SIDEBAR TOGGLE ========== */
+function toggleSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const backdrop = document.getElementById('backdrop');
+  const isOpen = sidebar.classList.contains('open');
+  if(isOpen){ sidebar.classList.remove('open'); backdrop.classList.remove('show'); }
+  else { sidebar.classList.add('open'); backdrop.classList.add('show'); }
+}
+
+/* ========== NAVIGATION ========== */
+document.querySelectorAll('.nav-item').forEach(item=>{
+  item.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+    item.classList.add('active');
+    document.getElementById('sec-'+item.dataset.section).classList.add('active');
+    // Close sidebar on mobile after selecting
+    document.getElementById('sidebar').classList.remove('open');
+    document.getElementById('backdrop').classList.remove('show');
+  });
+});
+
+/* ========== 每日计划 ========== */
+const Plan = {
+  data: Store.get('plans', {}),
+  init(){
+    const today = Store.today();
+    if(!this.data[today]) this.data[today] = [];
+    document.getElementById('planDateLabel').textContent = today;
+    this.render();
+    this.renderWeek();
+  },
+  add(){
+    const input = document.getElementById('planInput');
+    const text = input.value.trim();
+    if(!text) return;
+    const today = Store.today();
+    if(!this.data[today]) this.data[today] = [];
+    this.data[today].push({text, done:false});
+    Store.set('plans', this.data);
+    input.value = '';
+    this.render();
+    this.renderWeek();
+  },
+  toggle(i){
+    const today = Store.today();
+    this.data[today][i].done = !this.data[today][i].done;
+    Store.set('plans', this.data);
+    this.render();
+    this.renderWeek();
+  },
+  del(i){
+    const today = Store.today();
+    this.data[today].splice(i,1);
+    Store.set('plans', this.data);
+    this.render();
+    this.renderWeek();
+  },
+  render(){
+    const today = Store.today();
+    const items = this.data[today]||[];
+    const list = document.getElementById('planList');
+    const empty = document.getElementById('planEmpty');
+    list.innerHTML = '';
+    empty.style.display = items.length? 'none':'block';
+    items.forEach((item,i)=>{
+      const div = document.createElement('div');
+      div.className = 'todo-item' + (item.done?' done':'');
+      div.innerHTML = `<input type="checkbox" ${item.done?'checked':''} onchange="Plan.toggle(${i})"><span class="todo-text">${this.escape(item.text)}</span><button class="del-btn" onclick="Plan.del(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  renderWeek(){
+    const ws = Store.weekStart();
+    const days = [];
+    for(let i=0;i<7;i++){
+      const d = new Date(ws); d.setDate(d.getDate()+i);
+      days.push(d.toISOString().slice(0,10));
+    }
+    let totalTasks=0, totalDone=0;
+    const weekHtml = days.map((date,i)=>{
+      const items = this.data[date]||[];
+      const done = items.filter(t=>t.done).length;
+      const total = items.length;
+      totalTasks += total; totalDone += done;
+      const dayNames=['一','二','三','四','五','六','日'];
+      let cls='none', status='○';
+      if(total>0){ if(done===total){cls='done';status='✓';} else {cls='miss';status=done+'/'+total;} }
+      const isToday = date===Store.today();
+      return `<div class="week-day ${cls}" style="${isToday?'box-shadow:0 0 0 2px var(--primary);':''}"><div class="day-label">周${dayNames[i]}</div><div class="day-status">${status}</div></div>`;
+    }).join('');
+    const rate = totalTasks>0? Math.round(totalDone/totalTasks*100):0;
+    const wrap = document.getElementById('weekProgress');
+    wrap.innerHTML = `<div class="week-grid">${weekHtml}</div>`;
+    document.getElementById('weekRate').textContent = rate+'%';
+    document.getElementById('weekRateBar').style.width = rate+'%';
+  },
+  sync(){
+    const btn = document.getElementById('syncBtn');
+    btn.classList.add('syncing');
+    btn.querySelector('span:last-child').textContent = '同步中...';
+    setTimeout(()=>{
+      btn.classList.remove('syncing');
+      btn.querySelector('span:last-child').textContent = '同步到手机云端';
+      document.getElementById('syncStatus').textContent = '上次同步：'+new Date().toLocaleString('zh-CN');
+      Store.set('lastSync', new Date().toISOString());
+      Store.toast('✅ 数据已同步到云端');
+    }, 1500);
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 选题灵感 ========== */
+const Inspiration = {
+  data: Store.get('inspirations', []),
+  currentCat: 'all',
+  script: Store.get('scriptDraft', ''),
+  init(){
+    document.getElementById('scriptDraft').value = this.script;
+    document.querySelectorAll('#catTabs .category-tab').forEach(tab=>{
+      tab.addEventListener('click',()=>{
+        document.querySelectorAll('#catTabs .category-tab').forEach(t=>t.classList.remove('active'));
+        tab.classList.add('active');
+        this.currentCat = tab.dataset.cat;
+        this.render();
+      });
+    });
+    this.render();
+  },
+  add(){
+    const text = document.getElementById('inspireInput').value.trim();
+    if(!text){ Store.toast('请输入灵感内容'); return; }
+    const cat = document.getElementById('inspireCat').value;
+    const heat = document.getElementById('inspireHeat').value;
+    this.data.unshift({text, cat, heat, date: Store.today(), time: new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('inspirations', this.data);
+    document.getElementById('inspireInput').value = '';
+    this.render();
+    Store.toast('💡 灵感已记录');
+  },
+  del(i){
+    this.data.splice(i,1);
+    Store.set('inspirations', this.data);
+    this.render();
+  },
+  saveScript(){
+    this.script = document.getElementById('scriptDraft').value;
+    Store.set('scriptDraft', this.script);
+    const el = document.getElementById('scriptSaved');
+    el.style.display='inline';
+    setTimeout(()=>el.style.display='none',2000);
+  },
+  render(){
+    const list = document.getElementById('inspireList');
+    const empty = document.getElementById('inspireEmpty');
+    const items = this.currentCat==='all'? this.data : this.data.filter(d=>d.cat===this.currentCat);
+    list.innerHTML='';
+    empty.style.display = items.length? 'none':'block';
+    const catColors = {'干货':'tag-blue','颜值':'tag-red','日常':'tag-green','吐槽':'tag-orange','好物':'tag-gray'};
+    items.forEach((item,i)=>{
+      const realIdx = this.data.indexOf(item);
+      const div = document.createElement('div');
+      div.className = 'insight-card';
+      div.style.borderLeftColor = {'干货':'#4f46e5','颜值':'#ef4444','日常':'#10b981','吐槽':'#f59e0b','好物':'#9ca3af'}[item.cat];
+      div.innerHTML = `
+        <div class="meta">
+          <span class="tag ${catColors[item.cat]||'tag-gray'}">${item.cat}</span>
+          <span class="heat">${item.heat}</span>
+        </div>
+        <div class="content">${this.escape(item.text)}</div>
+        <div class="script">📅 ${item.date} ${item.time||''}</div>
+        <button class="btn btn-danger btn-sm" style="margin-top:6px;" onclick="Inspiration.del(${realIdx})">删除</button>`;
+      list.appendChild(div);
+    });
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 内容复盘 ========== */
+const Review = {
+  data: Store.get('reviews', []),
+  summary: Store.get('reviewSummary', {pros:'',cons:'',optimize:''}),
+  init(){
+    document.getElementById('reviewDate').value = Store.today();
+    document.getElementById('reviewPros').value = this.summary.pros;
+    document.getElementById('reviewCons').value = this.summary.cons;
+    document.getElementById('reviewOptimize').value = this.summary.optimize;
+    this.render();
+    this.renderStats();
+  },
+  add(){
+    const title = document.getElementById('reviewTitle').value.trim();
+    if(!title){ Store.toast('请输入作品标题'); return; }
+    const entry = {
+      title,
+      date: document.getElementById('reviewDate').value || Store.today(),
+      views: parseInt(document.getElementById('reviewViews').value)||0,
+      likes: parseInt(document.getElementById('reviewLikes').value)||0,
+      fans: parseInt(document.getElementById('reviewFans').value)||0
+    };
+    this.data.unshift(entry);
+    Store.set('reviews', this.data);
+    document.getElementById('reviewTitle').value='';
+    document.getElementById('reviewViews').value='';
+    document.getElementById('reviewLikes').value='';
+    document.getElementById('reviewFans').value='';
+    this.render();
+    this.renderStats();
+    Store.toast('📊 作品数据已记录');
+  },
+  del(i){
+    this.data.splice(i,1);
+    Store.set('reviews', this.data);
+    this.render();
+    this.renderStats();
+  },
+  saveSummary(){
+    this.summary = {
+      pros: document.getElementById('reviewPros').value,
+      cons: document.getElementById('reviewCons').value,
+      optimize: document.getElementById('reviewOptimize').value
+    };
+    Store.set('reviewSummary', this.summary);
+    const el = document.getElementById('summarySaved');
+    el.style.display='inline';
+    setTimeout(()=>el.style.display='none',2000);
+  },
+  render(){
+    const list = document.getElementById('reviewList');
+    const empty = document.getElementById('reviewEmpty');
+    list.innerHTML='';
+    empty.style.display = this.data.length? 'none':'block';
+    this.data.forEach((item,i)=>{
+      const div = document.createElement('div');
+      div.className = 'review-entry';
+      div.innerHTML = `
+        <div class="review-head">
+          <span class="review-title">🎬 ${this.escape(item.title)}</span>
+          <span class="review-date">${item.date}</span>
+        </div>
+        <div class="review-data">
+          <span class="r-d-item">▶ 播放 <span>${item.views.toLocaleString()}</span></span>
+          <span class="r-d-item">👍 点赞 <span>${item.likes.toLocaleString()}</span></span>
+          <span class="r-d-item">📈 涨粉 <span>${item.fans}</span></span>
+        </div>
+        <button class="btn btn-danger btn-sm" onclick="Review.del(${i})">删除</button>`;
+      list.appendChild(div);
+    });
+  },
+  renderStats(){
+    const totalViews = this.data.reduce((s,d)=>s+d.views,0);
+    const totalLikes = this.data.reduce((s,d)=>s+d.likes,0);
+    const totalFans = this.data.reduce((s,d)=>s+d.fans,0);
+    document.getElementById('totalViews').textContent = totalViews>9999? (totalViews/10000).toFixed(1)+'万' : totalViews.toLocaleString();
+    document.getElementById('totalLikes').textContent = totalLikes>9999? (totalLikes/10000).toFixed(1)+'万' : totalLikes.toLocaleString();
+    document.getElementById('totalFans').textContent = totalFans;
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 备忘录 ========== */
+const Memo = {
+  memos: Store.get('memos', []),
+  shopping: Store.get('shopping', []),
+  accounts: Store.get('accounts', []),
+  init(){ this.render(); this.renderShop(); this.renderAccounts(); },
+  add(){
+    const input = document.getElementById('memoInput');
+    const text = input.value.trim();
+    if(!text) return;
+    this.memos.unshift({text, date: new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})});
+    Store.set('memos', this.memos);
+    input.value='';
+    this.render();
+  },
+  del(i){ this.memos.splice(i,1); Store.set('memos', this.memos); this.render(); },
+  render(){
+    const list = document.getElementById('memoList');
+    const empty = document.getElementById('memoEmpty');
+    list.innerHTML='';
+    empty.style.display = this.memos.length? 'none':'block';
+    this.memos.forEach((m,i)=>{
+      const div = document.createElement('div');
+      div.className='memo-item';
+      div.innerHTML = `<div class="memo-text">${this.escape(m.text)}</div><div class="memo-time">${m.date}</div><button class="del-btn" onclick="Memo.del(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  addShop(){
+    const input = document.getElementById('shopInput');
+    const text = input.value.trim();
+    if(!text) return;
+    this.shopping.unshift({text, done:false});
+    Store.set('shopping', this.shopping);
+    input.value='';
+    this.renderShop();
+  },
+  toggleShop(i){ this.shopping[i].done=!this.shopping[i].done; Store.set('shopping', this.shopping); this.renderShop(); },
+  delShop(i){ this.shopping.splice(i,1); Store.set('shopping', this.shopping); this.renderShop(); },
+  renderShop(){
+    const list = document.getElementById('shopList');
+    list.innerHTML='';
+    if(!this.shopping.length){ list.innerHTML='<div class="empty-hint">购物清单是空的</div>'; return; }
+    this.shopping.forEach((s,i)=>{
+      const div = document.createElement('div');
+      div.className='todo-item' + (s.done?' done':'');
+      div.innerHTML=`<input type="checkbox" ${s.done?'checked':''} onchange="Memo.toggleShop(${i})"><span class="todo-text">🛒 ${this.escape(s.text)}</span><button class="del-btn" onclick="Memo.delShop(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  addAccount(){
+    const platform = document.getElementById('acctPlatform').value.trim();
+    const user = document.getElementById('acctUser').value.trim();
+    const pass = document.getElementById('acctPass').value;
+    const note = document.getElementById('acctNote').value.trim();
+    if(!platform || !user){ Store.toast('请至少填写平台和账号'); return; }
+    this.accounts.unshift({platform,user,pass,note,date:Store.today()});
+    Store.set('accounts', this.accounts);
+    document.getElementById('acctPlatform').value='';
+    document.getElementById('acctUser').value='';
+    document.getElementById('acctPass').value='';
+    document.getElementById('acctNote').value='';
+    this.renderAccounts();
+    Store.toast('🔐 信息已归档');
+  },
+  delAccount(i){ this.accounts.splice(i,1); Store.set('accounts', this.accounts); this.renderAccounts(); },
+  togglePass(){ const p=document.getElementById('acctPass'); p.type = p.type==='password'?'text':'password'; },
+  renderAccounts(){
+    const list = document.getElementById('acctList');
+    list.innerHTML='';
+    if(!this.accounts.length){ list.innerHTML='<div class="empty-hint">还没有归档信息</div>'; return; }
+    this.accounts.forEach((a,i)=>{
+      const div = document.createElement('div');
+      div.className='review-entry';
+      div.innerHTML=`
+        <div class="review-head">
+          <span class="review-title">🔑 ${this.escape(a.platform)}</span>
+          <span class="review-date">${a.date}</span>
+        </div>
+        <div style="font-size:13px;line-height:1.8;">
+          👤 账号：<strong>${this.escape(a.user)}</strong><br>
+          🔒 密码：${a.pass?'••••••••':'未设置'}<br>
+          ${a.note?'📝 '+this.escape(a.note):''}
+        </div>
+        <button class="btn btn-danger btn-sm" style="margin-top:6px;" onclick="Memo.delAccount(${i})">删除</button>`;
+      list.appendChild(div);
+    });
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 英语学习 ========== */
+const English = {
+  words: Store.get('words', []),
+  speaks: Store.get('speaks', []),
+  tasks: Store.get('engTasks', {0:false,1:false,2:false,3:false}),
+  studyTime: Store.get('studyTime', {today:0, date:Store.today(), week:0, weekStart:Store.weekStart()}),
+  timer: null, timerStart: null, timerElapsed: 0,
+  init(){
+    this.checkDateReset();
+    this.renderWords();
+    this.renderSpeaks();
+    this.renderTasks();
+    this.renderStats();
+    this.renderWeek();
+  },
+  checkDateReset(){
+    const today = Store.today();
+    if(this.studyTime.date !== today){
+      this.studyTime.today = 0;
+      this.studyTime.date = today;
+      Store.set('studyTime', this.studyTime);
+      this.tasks = {0:false,1:false,2:false,3:false};
+      Store.set('engTasks', this.tasks);
+    }
+    const ws = Store.weekStart();
+    if(this.studyTime.weekStart !== ws){
+      this.studyTime.week = 0;
+      this.studyTime.weekStart = ws;
+      Store.set('studyTime', this.studyTime);
+    }
+  },
+  addWord(){
+    const word = document.getElementById('wordInput').value.trim();
+    const phonetic = document.getElementById('phoneticInput').value.trim();
+    const meaning = document.getElementById('meaningInput').value.trim();
+    if(!word || !meaning){ Store.toast('请输入单词和释义'); return; }
+    this.words.unshift({word, phonetic, meaning, date:Store.today()});
+    Store.set('words', this.words);
+    document.getElementById('wordInput').value='';
+    document.getElementById('phoneticInput').value='';
+    document.getElementById('meaningInput').value='';
+    this.renderWords();
+    this.renderStats();
+    Store.toast('📖 单词已添加');
+  },
+  delWord(i){ this.words.splice(i,1); Store.set('words', this.words); this.renderWords(); this.renderStats(); },
+  renderWords(){
+    const list = document.getElementById('wordList');
+    const empty = document.getElementById('wordEmpty');
+    list.innerHTML='';
+    empty.style.display = this.words.length? 'none':'block';
+    const todayWords = this.words.filter(w=>w.date===Store.today());
+    this.words.slice(0,30).forEach((w,i)=>{
+      const realIdx = this.words.indexOf(w);
+      const div = document.createElement('div');
+      div.className='word-card';
+      const isNew = w.date===Store.today();
+      div.innerHTML=`
+        <span class="word-del" onclick="English.delWord(${realIdx})">✕</span>
+        <div class="word">${this.escape(w.word)} ${isNew?'<span class="tag tag-green" style="font-size:10px;">今日</span>':''}</div>
+        ${w.phonetic?`<div class="phonetic">${this.escape(w.phonetic)}</div>`:''}
+        <div class="meaning">${this.escape(w.meaning)}</div>`;
+      list.appendChild(div);
+    });
+  },
+  addSpeak(){
+    const input = document.getElementById('speakInput');
+    const text = input.value.trim();
+    if(!text) return;
+    this.speaks.unshift({text, date:Store.today(), time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('speaks', this.speaks);
+    input.value='';
+    this.renderSpeaks();
+  },
+  delSpeak(i){ this.speaks.splice(i,1); Store.set('speaks', this.speaks); this.renderSpeaks(); },
+  renderSpeaks(){
+    const list = document.getElementById('speakList');
+    list.innerHTML='';
+    if(!this.speaks.length){ list.innerHTML='<div class="empty-hint">还没有跟读记录</div>'; return; }
+    this.speaks.slice(0,15).forEach((s,i)=>{
+      const realIdx = this.speaks.indexOf(s);
+      const div = document.createElement('div');
+      div.className='insight-card';
+      div.style.borderLeftColor='#10b981';
+      div.innerHTML=`<div class="content">🗣️ ${this.escape(s.text)}</div><div class="script">📅 ${s.date} ${s.time||''}</div><button class="btn btn-danger btn-sm" style="margin-top:4px;" onclick="English.delSpeak(${realIdx})">删除</button>`;
+      list.appendChild(div);
+    });
+  },
+  checkTask(el, idx, name){
+    this.tasks[idx] = el.checked;
+    Store.set('engTasks', this.tasks);
+    if(el.checked) Store.toast('✅ '+name+' 已完成');
+    this.renderWeek();
+  },
+  renderTasks(){
+    const checks = document.querySelectorAll('#engTaskList input[type=checkbox]');
+    checks.forEach((c,i)=>{ c.checked = this.tasks[i]||false; });
+  },
+  toggleTimer(){
+    const btn = document.getElementById('timerBtn');
+    if(this.timer){
+      clearInterval(this.timer);
+      this.timer = null;
+      this.studyTime.today += this.timerElapsed;
+      this.studyTime.week += this.timerElapsed;
+      Store.set('studyTime', this.studyTime);
+      this.timerElapsed = 0;
+      btn.textContent = '开始计时';
+      btn.classList.remove('btn-success');
+      btn.classList.add('btn-primary');
+      this.renderStats();
+      Store.toast('⏱️ 学习时间已记录');
+    } else {
+      this.timerStart = Date.now();
+      this.timer = setInterval(()=>{
+        this.timerElapsed = Math.floor((Date.now()-this.timerStart)/1000);
+        this.updateTimerDisplay(this.studyTime.today + this.timerElapsed);
+      }, 1000);
+      btn.textContent = '停止计时';
+      btn.classList.remove('btn-primary');
+      btn.classList.add('btn-success');
+    }
+  },
+  resetTimer(){
+    if(this.timer){ clearInterval(this.timer); this.timer=null; }
+    this.timerElapsed = 0;
+    const btn = document.getElementById('timerBtn');
+    btn.textContent = '开始计时';
+    btn.classList.remove('btn-success');
+    btn.classList.add('btn-primary');
+    this.updateTimerDisplay(this.studyTime.today);
+  },
+  updateTimerDisplay(sec){
+    const h = String(Math.floor(sec/3600)).padStart(2,'0');
+    const m = String(Math.floor(sec%3600/60)).padStart(2,'0');
+    const s = String(sec%60).padStart(2,'0');
+    document.getElementById('timerDisplay').textContent = `${h}:${m}:${s}`;
+  },
+  renderStats(){
+    this.updateTimerDisplay(this.studyTime.today);
+    document.getElementById('todayMinutes').textContent = Math.floor(this.studyTime.today/60);
+    document.getElementById('weekMinutes').textContent = Math.floor(this.studyTime.week/60);
+    document.getElementById('totalWords').textContent = this.words.length;
+  },
+  renderWeek(){
+    // Simulated week data based on tasks completion
+    const dayOfWeek = (new Date().getDay()||7) - 1;
+    const weekData = Store.get('engWeek', [false,false,false,false,false,false,false]);
+    weekData[dayOfWeek] = Object.values(this.tasks).some(v=>v);
+    Store.set('engWeek', weekData);
+    for(let i=0;i<7;i++){
+      const el = document.getElementById('engDay'+i);
+      if(weekData[i]){ el.textContent='✓'; el.parentElement.className='week-day done'; }
+      else { el.textContent='○'; el.parentElement.className='week-day none'; }
+    }
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 健身打卡 ========== */
+const Fitness = {
+  records: Store.get('fitRecords', []),
+  measures: Store.get('fitMeasures', []),
+  diets: Store.get('fitDiets', []),
+  init(){ this.renderRecords(); this.renderMeasures(); this.renderDiets(); this.renderStats(); },
+  add(){
+    const type = document.getElementById('fitType').value;
+    const item = document.getElementById('fitItem').value.trim();
+    const duration = parseInt(document.getElementById('fitDuration').value)||0;
+    if(!item){ Store.toast('请输入训练项目'); return; }
+    this.records.unshift({type,item,duration,date:Store.today(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('fitRecords', this.records);
+    document.getElementById('fitItem').value='';
+    document.getElementById('fitDuration').value='';
+    this.renderRecords();
+    this.renderStats();
+    Store.toast('💪 打卡成功！');
+  },
+  del(i){ this.records.splice(i,1); Store.set('fitRecords', this.records); this.renderRecords(); this.renderStats(); },
+  renderRecords(){
+    const list = document.getElementById('fitList');
+    const empty = document.getElementById('fitEmpty');
+    list.innerHTML='';
+    empty.style.display = this.records.length? 'none':'block';
+    const typeIcons={'有氧':'🏃','力量':'💪','拉伸':'🧘'};
+    const typeColors={'有氧':'tag-green','力量':'tag-orange','拉伸':'tag-blue'};
+    this.records.slice(0,20).forEach((r,i)=>{
+      const realIdx = this.records.indexOf(r);
+      const div = document.createElement('div');
+      div.className='record-row';
+      div.innerHTML=`
+        <div class="r-icon">${typeIcons[r.type]||'🏋️'}</div>
+        <div class="r-info">
+          <div class="r-title">${this.escape(r.item)} <span class="tag ${typeColors[r.type]||'tag-gray'}" style="font-size:10px;">${r.type}</span></div>
+          <div class="r-sub">${r.date} ${r.time||''}</div>
+        </div>
+        <div class="r-val">${r.duration}分</div>
+        <button class="del-btn" style="opacity:1;font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Fitness.del(${realIdx})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  addMeasure(){
+    const weight = parseFloat(document.getElementById('weightInput').value)||0;
+    const waist = parseFloat(document.getElementById('waistInput').value)||0;
+    const chest = parseFloat(document.getElementById('chestInput').value)||0;
+    if(!weight && !waist && !chest){ Store.toast('请至少输入一项数据'); return; }
+    this.measures.unshift({weight,waist,chest,date:Store.today()});
+    Store.set('fitMeasures', this.measures);
+    document.getElementById('weightInput').value='';
+    document.getElementById('waistInput').value='';
+    document.getElementById('chestInput').value='';
+    this.renderMeasures();
+    Store.toast('⚖️ 数据已记录');
+  },
+  delMeasure(i){ this.measures.splice(i,1); Store.set('fitMeasures', this.measures); this.renderMeasures(); },
+  renderMeasures(){
+    const chart = document.getElementById('weightChart');
+    const list = document.getElementById('measureList');
+    chart.innerHTML='';
+    list.innerHTML='';
+    const weightData = this.measures.filter(m=>m.weight>0).slice(0,12).reverse();
+    if(weightData.length){
+      const maxW = Math.max(...weightData.map(m=>m.weight));
+      const minW = Math.min(...weightData.map(m=>m.weight));
+      const range = Math.max(maxW-minW, 5);
+      weightData.forEach(m=>{
+        const h = 20 + (m.weight-minW)/range*80;
+        const bar = document.createElement('div');
+        bar.className='weight-bar';
+        bar.innerHTML=`<div class="bar" style="height:${h}px;"></div><div class="bar-label">${m.weight}kg</div>`;
+        chart.appendChild(bar);
+      });
+    } else {
+      chart.innerHTML='<div class="empty-hint" style="width:100%;">暂无体重数据</div>';
+    }
+    this.measures.slice(0,10).forEach((m,i)=>{
+      const realIdx = this.measures.indexOf(m);
+      const div = document.createElement('div');
+      div.className='record-row';
+      div.innerHTML=`
+        <div class="r-icon">📏</div>
+        <div class="r-info">
+          <div class="r-title">${m.weight?`体重 ${m.weight}kg `:''}${m.waist?`腰围 ${m.waist}cm `:''}${m.chest?`胸围 ${m.chest}cm`:''}</div>
+          <div class="r-sub">${m.date}</div>
+        </div>
+        <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Fitness.delMeasure(${realIdx})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  addDiet(){
+    const type = document.getElementById('dietType').value;
+    const content = document.getElementById('dietContent').value.trim();
+    if(!content) return;
+    this.diets.unshift({type,content,date:Store.today(),time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('fitDiets', this.diets);
+    document.getElementById('dietContent').value='';
+    this.renderDiets();
+  },
+  delDiet(i){ this.diets.splice(i,1); Store.set('fitDiets', this.diets); this.renderDiets(); },
+  renderDiets(){
+    const list = document.getElementById('dietList');
+    list.innerHTML='';
+    if(!this.diets.length){ list.innerHTML='<div class="empty-hint">还没有饮食记录</div>'; return; }
+    const typeIcons={'早餐':'🌅','午餐':'☀️','晚餐':'🌙','加餐':'🍎'};
+    this.diets.slice(0,10).forEach((d,i)=>{
+      const realIdx = this.diets.indexOf(d);
+      const div = document.createElement('div');
+      div.className='record-row';
+      div.innerHTML=`
+        <div class="r-icon">${typeIcons[d.type]||'🍽️'}</div>
+        <div class="r-info">
+          <div class="r-title">${this.escape(d.content)} <span class="tag tag-gray" style="font-size:10px;">${d.type}</span></div>
+          <div class="r-sub">${d.date} ${d.time||''}</div>
+        </div>
+        <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Fitness.delDiet(${realIdx})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  renderStats(){
+    const total = this.records.length;
+    const ws = Store.weekStart();
+    const weekRecords = this.records.filter(r=>r.date>=ws);
+    const totalMin = this.records.reduce((s,r)=>s+r.duration,0);
+    document.getElementById('fitTotalSessions').textContent = total;
+    document.getElementById('fitWeekSessions').textContent = weekRecords.length;
+    document.getElementById('fitTotalMinutes').textContent = totalMin;
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 存钱计划 ========== */
+const Savings = {
+  goals: Store.get('saveGoals', {total:0, monthly:0}),
+  saved: Store.get('saveSaved', 0),
+  monthSaved: Store.get('saveMonthSaved', {amount:0, month: new Date().getMonth()}),
+  subGoals: Store.get('saveSubGoals', []),
+  log: Store.get('saveLog', []),
+  init(){
+    document.getElementById('saveTotalGoal').value = this.goals.total||'';
+    document.getElementById('saveMonthlyGoal').value = this.goals.monthly||'';
+    this.checkMonthReset();
+    this.render();
+    this.renderGoals();
+    this.renderLog();
+  },
+  checkMonthReset(){
+    const curMonth = new Date().getMonth();
+    if(this.monthSaved.month !== curMonth){
+      this.monthSaved = {amount:0, month:curMonth};
+      Store.set('saveMonthSaved', this.monthSaved);
+    }
+  },
+  updateGoals(){
+    this.goals.total = parseInt(document.getElementById('saveTotalGoal').value)||0;
+    this.goals.monthly = parseInt(document.getElementById('saveMonthlyGoal').value)||0;
+    Store.set('saveGoals', this.goals);
+    this.render();
+  },
+  deposit(){
+    const amount = parseInt(document.getElementById('saveAddAmount').value)||0;
+    if(amount<=0){ Store.toast('请输入有效金额'); return; }
+    this.saved += amount;
+    this.monthSaved.amount += amount;
+    Store.set('saveSaved', this.saved);
+    Store.set('saveMonthSaved', this.monthSaved);
+    this.log.unshift({amount, date:new Date().toLocaleString('zh-CN',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'})});
+    Store.set('saveLog', this.log);
+    document.getElementById('saveAddAmount').value='';
+    this.render();
+    this.renderLog();
+    Store.toast('💾 已存入 ¥'+amount);
+  },
+  addGoal(){
+    const name = document.getElementById('goalName').value.trim();
+    const amount = parseInt(document.getElementById('goalAmount').value)||0;
+    if(!name || amount<=0){ Store.toast('请填写完整'); return; }
+    this.subGoals.unshift({name,amount,saved:0});
+    Store.set('saveSubGoals', this.subGoals);
+    document.getElementById('goalName').value='';
+    document.getElementById('goalAmount').value='';
+    this.renderGoals();
+    Store.toast('📌 小目标已添加');
+  },
+  delGoal(i){ this.subGoals.splice(i,1); Store.set('saveSubGoals', this.subGoals); this.renderGoals(); },
+  goalDeposit(i){
+    const amt = parseInt(prompt('为「'+this.subGoals[i].name+'」存入多少？')||'0');
+    if(amt>0){ this.subGoals[i].saved += amt; Store.set('saveSubGoals', this.subGoals); this.renderGoals(); Store.toast('已为「'+this.subGoals[i].name+'」存入 ¥'+amt); }
+  },
+  render(){
+    const total = this.goals.total;
+    const monthly = this.goals.monthly;
+    const saved = this.saved;
+    const monthSaved = this.monthSaved.amount;
+    const pct = total>0? Math.min(100, Math.round(saved/total*100)):0;
+    const monthPct = monthly>0? Math.min(100, Math.round(monthSaved/monthly*100)):0;
+    const remaining = Math.max(0, total-saved);
+    document.getElementById('saveProgressText').textContent = `¥${saved.toLocaleString()} / ¥${total.toLocaleString()}`;
+    document.getElementById('saveProgressBar').style.width = pct+'%';
+    document.getElementById('saveMonthProgressText').textContent = `¥${monthSaved.toLocaleString()} / ¥${monthly.toLocaleString()}`;
+    document.getElementById('saveMonthProgressBar').style.width = monthPct+'%';
+    document.getElementById('saveTotalSaved').textContent = '¥'+saved.toLocaleString();
+    document.getElementById('saveRemaining').textContent = '¥'+remaining.toLocaleString();
+    document.getElementById('savePercent').textContent = pct+'%';
+  },
+  renderGoals(){
+    const list = document.getElementById('goalList');
+    const empty = document.getElementById('goalEmpty');
+    list.innerHTML='';
+    empty.style.display = this.subGoals.length? 'none':'block';
+    const icons=['📱','💻','🎮','👟','📷','🎧','⌚','🎒','🎁','💸'];
+    this.subGoals.forEach((g,i)=>{
+      const pct = g.amount>0? Math.min(100, Math.round(g.saved/g.amount*100)):0;
+      const div = document.createElement('div');
+      div.className='savings-goal';
+      div.innerHTML=`
+        <div class="goal-icon">${icons[i%icons.length]}</div>
+        <div class="goal-info">
+          <div class="goal-name">${this.escape(g.name)} <button style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:12px;float:right;" onclick="Savings.delGoal(${i})">✕</button></div>
+          <div class="goal-progress">¥${g.saved.toLocaleString()} / ¥${g.amount.toLocaleString()} (${pct}%)</div>
+          <div class="progress-bar" style="margin-top:4px;"><div class="progress-fill" style="width:${pct}%;background:var(--success);"></div></div>
+        </div>
+        <div class="goal-amount">¥${(g.amount-g.saved).toLocaleString()}</div>`;
+      div.style.cursor='pointer';
+      div.onclick = (e)=>{ if(e.target.tagName!=='BUTTON') this.goalDeposit(i); };
+      list.appendChild(div);
+    });
+  },
+  renderLog(){
+    const list = document.getElementById('saveLog');
+    list.innerHTML='';
+    if(!this.log.length){ list.innerHTML='<div class="empty-hint">还没有存款记录</div>'; return; }
+    this.log.forEach((l,i)=>{
+      const div = document.createElement('div');
+      div.className='record-row';
+      div.innerHTML=`<div class="r-icon">💰</div><div class="r-info"><div class="r-title">存入 ¥${l.amount.toLocaleString()}</div><div class="r-sub">${l.date}</div></div>`;
+      list.appendChild(div);
+    });
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== 每日记账 ========== */
+const Accounting = {
+  records: Store.get('accRecords', []),
+  type: 'out',
+  selectedCat: '餐饮',
+  outCats: ['餐饮','购物','交通','娱乐','住房','医疗','教育','日用','其他'],
+  inCats: ['工资','副业','红包','投资','其他'],
+  budget: Store.get('accBudget', {monthly:0}),
+  init(){
+    this.renderCatSelector();
+    this.render();
+    this.renderSummary();
+    this.renderCatChart();
+  },
+  setType(t){
+    this.type = t;
+    document.getElementById('typeOut').classList.toggle('active', t==='out');
+    document.getElementById('typeIn').classList.toggle('active', t==='in');
+    this.selectedCat = (t==='out'?this.outCats:this.inCats)[0];
+    this.renderCatSelector();
+  },
+  renderCatSelector(){
+    const wrap = document.getElementById('catSelector');
+    const cats = this.type==='out'? this.outCats : this.inCats;
+    const icons = {'餐饮':'🍜','购物':'🛍️','交通':'🚗','娱乐':'🎮','住房':'🏠','医疗':'💊','教育':'📚','日用':'🧴','其他':'📦','工资':'💼','副业':'💻','红包':'🧧','投资':'📈'};
+    wrap.innerHTML = cats.map(c=>`<span class="expense-cat-item ${c===this.selectedCat?'active':''}" onclick="Accounting.selectCat('${c}')">${icons[c]||'📌'} ${c}</span>`).join('');
+  },
+  selectCat(c){ this.selectedCat=c; this.renderCatSelector(); },
+  add(){
+    const amount = parseFloat(document.getElementById('accAmount').value)||0;
+    const note = document.getElementById('accNote').value.trim();
+    if(amount<=0){ Store.toast('请输入有效金额'); return; }
+    this.records.unshift({type:this.type, cat:this.selectedCat, amount, note, date:Store.today(), time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('accRecords', this.records);
+    document.getElementById('accAmount').value='';
+    document.getElementById('accNote').value='';
+    this.render();
+    this.renderSummary();
+    this.renderCatChart();
+    Store.toast('🧾 已记录 ¥'+amount);
+  },
+  del(i){ this.records.splice(i,1); Store.set('accRecords', this.records); this.render(); this.renderSummary(); this.renderCatChart(); },
+  render(){
+    const list = document.getElementById('accTodayList');
+    const empty = document.getElementById('accTodayEmpty');
+    const today = Store.today();
+    const todayRecords = this.records.filter(r=>r.date===today);
+    list.innerHTML='';
+    empty.style.display = todayRecords.length? 'none':'block';
+    todayRecords.forEach(r=>{
+      const realIdx = this.records.indexOf(r);
+      const div = document.createElement('div');
+      div.className='record-row';
+      const isOut = r.type==='out';
+      div.innerHTML=`
+        <div class="r-icon">${isOut?'💸':'💵'}</div>
+        <div class="r-info">
+          <div class="r-title">${this.escape(r.note||r.cat)} <span class="tag ${isOut?'tag-red':'tag-green'}" style="font-size:10px;">${r.cat}</span></div>
+          <div class="r-sub">${r.time||''}</div>
+        </div>
+        <div class="r-val" style="color:${isOut?'var(--danger)':'var(--success)'};">${isOut?'-':'+'}¥${r.amount.toFixed(2)}</div>
+        <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Accounting.del(${realIdx})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  renderSummary(){
+    const today = Store.today();
+    const month = today.slice(0,7);
+    const todayRecords = this.records.filter(r=>r.date===today);
+    const monthRecords = this.records.filter(r=>r.date.slice(0,7)===month);
+    const todayIn = todayRecords.filter(r=>r.type==='in').reduce((s,r)=>s+r.amount,0);
+    const todayOut = todayRecords.filter(r=>r.type==='out').reduce((s,r)=>s+r.amount,0);
+    const monthIn = monthRecords.filter(r=>r.type==='in').reduce((s,r)=>s+r.amount,0);
+    const monthOut = monthRecords.filter(r=>r.type==='out').reduce((s,r)=>s+r.amount,0);
+    const monthBal = monthIn - monthOut;
+    const daysInMonth = new Date(new Date().getFullYear(), new Date().getMonth()+1, 0).getDate();
+    const dailyAvg = monthOut / new Date().getDate();
+    document.getElementById('accTodayIn').textContent = '¥'+todayIn.toFixed(2);
+    document.getElementById('accTodayOut').textContent = '¥'+todayOut.toFixed(2);
+    document.getElementById('accMonthBalance').textContent = (monthBal>=0?'+':'')+'¥'+monthBal.toFixed(2);
+    document.getElementById('accMonthBalance').style.color = monthBal>=0? 'var(--success)':'var(--danger)';
+    document.getElementById('accMonthIn').textContent = '¥'+monthIn.toFixed(2);
+    document.getElementById('accMonthOut').textContent = '¥'+monthOut.toFixed(2);
+    document.getElementById('accMonthBal').textContent = (monthBal>=0?'+':'')+'¥'+Math.abs(monthBal).toFixed(2);
+    document.getElementById('accDailyAvg').textContent = '¥'+dailyAvg.toFixed(2);
+    // overspend alert
+    const alert = document.getElementById('overspendAlert');
+    if(this.budget.monthly>0 && monthOut > this.budget.monthly){
+      alert.innerHTML = `<div style="margin-top:12px;padding:10px;background:var(--danger-light);border-radius:8px;font-size:13px;color:var(--danger);font-weight:600;">⚠️ 本月已超支 ¥${(monthOut-this.budget.monthly).toFixed(2)}！请注意控制支出。</div>`;
+    } else if(this.budget.monthly>0){
+      const remain = this.budget.monthly - monthOut;
+      alert.innerHTML = `<div style="margin-top:12px;padding:10px;background:var(--success-light);border-radius:8px;font-size:13px;color:#065f46;">✅ 本月预算剩余 ¥${remain.toFixed(2)}，继续保持！</div>`;
+    } else {
+      alert.innerHTML = '';
+    }
+  },
+  renderCatChart(){
+    const wrap = document.getElementById('accCatChart');
+    const month = Store.today().slice(0,7);
+    const monthOut = this.records.filter(r=>r.type==='out' && r.date.slice(0,7)===month);
+    const catTotals = {};
+    monthOut.forEach(r=>{ catTotals[r.cat] = (catTotals[r.cat]||0) + r.amount; });
+    const total = Object.values(catTotals).reduce((s,v)=>s+v,0);
+    wrap.innerHTML='';
+    if(total===0){ wrap.innerHTML='<div class="empty-hint">本月还没有支出记录</div>'; return; }
+    const colors = {'餐饮':'#ef4444','购物':'#f59e0b','交通':'#3b82f6','娱乐':'#8b5cf6','住房':'#10b981','医疗':'#ec4899','教育':'#6366f1','日用':'#14b8a6','其他':'#6b7280'};
+    const sorted = Object.entries(catTotals).sort((a,b)=>b[1]-a[1]);
+    sorted.forEach(([cat,amt])=>{
+      const pct = Math.round(amt/total*100);
+      const div = document.createElement('div');
+      div.className='progress-wrap';
+      div.innerHTML=`
+        <div class="progress-label"><span>${cat}</span><span class="val">¥${amt.toFixed(2)} (${pct}%)</span></div>
+        <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:${colors[cat]||'#6b7280'};"></div></div>`;
+      wrap.appendChild(div);
+    });
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
+/* ========== INIT ========== */
+window.addEventListener('DOMContentLoaded',()=>{
+  // Restore sync time
+  const lastSync = Store.get('lastSync', null);
+  if(lastSync){ document.getElementById('syncStatus').textContent = '上次同步：'+new Date(lastSync).toLocaleString('zh-CN'); }
+  // Init all modules
+  Plan.init();
+  Inspiration.init();
+  Review.init();
+  Memo.init();
+  English.init();
+  Fitness.init();
+  Savings.init();
+  Accounting.init();
+});
+</script>
+</body>
+</html>
