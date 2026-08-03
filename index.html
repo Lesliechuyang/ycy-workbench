@@ -1816,7 +1816,7 @@ const Travel = {
     Store.set('travelTrips', this.trips);
     this.render();
   },
-  editDayPlan(tripIdx, dayIdx){
+  editDayPlan(tripIdx, dayIdx, silent){
     const t = this.trips[tripIdx];
     if(!t || !t.days || !t.days[dayIdx]) return;
     const routeEl = document.getElementById('dayRoute_'+tripIdx+'_'+dayIdx);
@@ -1829,7 +1829,7 @@ const Travel = {
       t.days[dayIdx].stay = stayEl ? stayEl.value : '';
       t.days[dayIdx].food = foodEl ? foodEl.value : '';
       Store.set('travelTrips', this.trips);
-      Store.toast('✅ '+t.days[dayIdx].label+' 计划已保存');
+      if(!silent) Store.toast('✅ '+t.days[dayIdx].label+' 计划已保存');
     }
   },
   render(){
@@ -1863,7 +1863,7 @@ const Travel = {
               <label style="font-size:11px;color:var(--text-sec);font-weight:600;">${f.label}</label>
               <textarea class="input" id="day${f.key}_${i}_${di}" placeholder="${f.ph}" 
                 style="width:100%;min-height:36px;font-size:12px;padding:5px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;margin-top:2px;"
-                onblur="Travel.editDayPlan(${i},${di})">${this.escape(d[f.key]||'')}</textarea>
+                onblur="Travel.editDayPlan(${i},${di},true)">${this.escape(d[f.key]||'')}</textarea>
             </div>`).join('');
           dayPlansHtml += `
             <div style="margin-bottom:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--border);">
@@ -1872,6 +1872,7 @@ const Travel = {
                 <span style="font-size:11px;color:var(--text-sec);">${d.date} 周${weekday}</span>
               </div>
               ${fieldsHtml}
+              <button class="btn btn-primary btn-sm" style="font-size:11px;padding:3px 12px;margin-top:6px;border:none;border-radius:6px;cursor:pointer;" onclick="Travel.editDayPlan(${i},${di})">💾 保存当日计划</button>
             </div>`;
         });
         dayPlansHtml += '</div>';
