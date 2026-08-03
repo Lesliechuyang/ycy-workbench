@@ -1849,6 +1849,7 @@ const Travel = {
 const Sync = {
   key: localStorage.getItem('sync_key') || '',
   pushTimer: null,
+  pullTimer: null,
   isSyncing: false,
   _ready: false,
 
@@ -1857,10 +1858,29 @@ const Sync = {
     // Auto-pull on page load if key is set
     if (this.key) {
       this.updateStatus('同步中...');
-      this.pull(true).finally(() => { this._ready = true; });
+      this.pull(true).finally(() => {
+        this._ready = true;
+        this.startPolling();
+      });
     } else {
       this._ready = true;
     }
+    // Re-poll when tab becomes visible
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden && this.key && this._ready) {
+        this.pull(true);
+      }
+    });
+  },
+
+  startPolling() {
+    // Auto-pull every 30 seconds (silent, no toast unless changes found)
+    clearInterval(this.pullTimer);
+    this.pullTimer = setInterval(() => {
+      if (this.key && this._ready && !document.hidden) {
+        this.pull(true);
+      }
+    }, 30000);
   },
 
   setKey(key) {
@@ -1868,7 +1888,10 @@ const Sync = {
     localStorage.setItem('sync_key', key);
     this.updateUI();
     Store.toast('✅ 同步密钥已设置，正在同步...');
-    this.pull();
+    this.pull().finally(() => {
+      this._ready = true;
+      this.startPolling();
+    });
   },
 
   collectData() {
@@ -1884,7 +1907,7 @@ const Sync = {
     return { data, meta };
   },
 
-  async push() {
+  async push(silent) {
     if (!this.key) {
       Store.toast('⚠️ 请先设置同步密钥');
       this.openSettings();
@@ -1905,14 +1928,14 @@ const Sync = {
       if (json.success) {
         localStorage.setItem('sync_last_push', json.modified.toString());
         this.updateStatus('已同步 ' + new Date().toLocaleTimeString('zh-CN'));
-        Store.toast('☁️ 数据已同步到云端');
+        if (!silent) Store.toast('☁️ 数据已同步到云端');
       } else {
         this.updateStatus('同步失败');
-        Store.toast('⚠️ 同步失败：' + (json.error || '未知错误'));
+        if (!silent) Store.toast('⚠️ 同步失败：' + (json.error || '未知错误'));
       }
     } catch (e) {
       this.updateStatus('同步失败');
-      Store.toast('⚠️ 网络错误：' + e.message);
+      if (!silent) Store.toast('⚠️ 网络错误：' + e.message);
     }
     this.isSyncing = false;
   },
@@ -1979,7 +2002,7 @@ const Sync = {
   schedulePush() {
     if (!this._ready) return; // Don't push during initial pull
     clearTimeout(this.pushTimer);
-    this.pushTimer = setTimeout(() => this.push(), 3000);
+    this.pushTimer = setTimeout(() => this.push(true), 3000); // silent auto-push
   },
 
   updateStatus(text) {
