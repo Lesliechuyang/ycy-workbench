@@ -268,6 +268,7 @@ tr:hover td{background:#f9fafb;}
     <div class="nav-item" data-section="fitness"><span class="icon">💪</span>健身打卡</div>
     <div class="nav-item" data-section="savings"><span class="icon">💰</span>存钱计划</div>
     <div class="nav-item" data-section="accounting"><span class="icon">🧾</span>每日记账</div>
+    <div class="nav-item" data-section="travel"><span class="icon">✈️</span>旅行计划</div>
   </nav>
   <div class="sidebar-footer">WorkBuddy · 本地数据持久化</div>
 </div>
@@ -679,6 +680,62 @@ tr:hover td{background:#f9fafb;}
           <tr><td>📈 日均支出</td><td id="accDailyAvg">¥0</td></tr>
         </table>
         <div id="overspendAlert"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 旅行计划 ===== -->
+<div class="section" id="sec-travel">
+  <div class="section-title">✈️ 旅行计划</div>
+  <div class="grid-3" style="margin-bottom:16px;">
+    <div class="stat-box"><div class="num" id="travelTotal">0</div><div class="label">旅行总数</div></div>
+    <div class="stat-box green"><div class="num" id="travelDone">0</div><div class="label">已去过</div></div>
+    <div class="stat-box"><div class="num" id="travelPlanning">0</div><div class="label">计划中</div></div>
+  </div>
+  <div class="grid-2">
+    <div>
+      <div class="card">
+        <div class="card-title">🗺️ 添加旅行目的地</div>
+        <input class="input" id="travelDest" placeholder="目的地（如：东京、三亚、清迈）" style="margin-bottom:8px;">
+        <div class="grid-2" style="margin-bottom:8px;">
+          <input class="input" id="travelStartDate" type="date" style="font-size:13px;">
+          <input class="input" id="travelEndDate" type="date" style="font-size:13px;">
+        </div>
+        <input class="input" id="travelBudget" type="number" placeholder="预算金额（元）" style="margin-bottom:8px;">
+        <select class="input" id="travelStatus" style="margin-bottom:8px;">
+          <option value="planning">📋 计划中</option>
+          <option value="ongoing">🚀 进行中</option>
+          <option value="done">✅ 已完成</option>
+        </select>
+        <input class="input" id="travelNote" placeholder="备注（交通方式、住宿、必去景点等）" style="margin-bottom:10px;">
+        <button class="btn btn-primary btn-sm" onclick="Travel.add()">添加旅行</button>
+      </div>
+      <div class="card">
+        <div class="card-title">🎒 打包清单</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input class="input" id="packItem" placeholder="要带的物品" style="flex:1;">
+          <button class="btn btn-primary btn-sm" onclick="Travel.addPack()">添加</button>
+        </div>
+        <div id="packList"></div>
+        <div id="packEmpty" class="empty-hint">还没有添加物品</div>
+      </div>
+    </div>
+    <div>
+      <div class="card">
+        <div class="card-title">📍 我的旅行清单</div>
+        <div id="travelList"></div>
+        <div id="travelEmpty" class="empty-hint">还没有旅行计划，添加一个吧！</div>
+      </div>
+      <div class="card">
+        <div class="card-title">💡 旅行小记</div>
+        <div style="display:flex;gap:8px;margin-bottom:10px;">
+          <input class="input" id="travelJournalDest" placeholder="旅行目的地" style="width:120px;flex-shrink:0;">
+          <input class="input" id="travelJournalText" placeholder="记录旅行中的见闻和感受..." style="flex:1;">
+          <button class="btn btn-primary btn-sm" onclick="Travel.addJournal()">记录</button>
+        </div>
+        <div id="journalList"></div>
+        <div id="journalEmpty" class="empty-hint">还没有旅行记录</div>
       </div>
     </div>
   </div>
@@ -1570,6 +1627,182 @@ const Accounting = {
   escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 };
 
+/* ========== 旅行计划 ========== */
+const Travel = {
+  trips: Store.get('travelTrips', []),
+  packs: Store.get('travelPacks', []),
+  journals: Store.get('travelJournals', []),
+  statusMap: {planning:'📋 计划中', ongoing:'🚀 进行中', done:'✅ 已完成'},
+  statusColor: {planning:'var(--warning)', ongoing:'var(--primary)', done:'var(--success)'},
+  statusBg: {planning:'var(--warning-light)', ongoing:'var(--primary-light)', done:'var(--success-light)'},
+  init(){
+    this.render();
+    this.renderStats();
+    this.renderPacks();
+    this.renderJournals();
+  },
+  add(){
+    const dest = document.getElementById('travelDest').value.trim();
+    if(!dest){ Store.toast('请输入目的地'); return; }
+    const trip = {
+      dest,
+      start: document.getElementById('travelStartDate').value,
+      end: document.getElementById('travelEndDate').value,
+      budget: parseFloat(document.getElementById('travelBudget').value)||0,
+      status: document.getElementById('travelStatus').value,
+      note: document.getElementById('travelNote').value.trim(),
+      spent: 0,
+      created: Store.today()
+    };
+    this.trips.unshift(trip);
+    Store.set('travelTrips', this.trips);
+    document.getElementById('travelDest').value='';
+    document.getElementById('travelStartDate').value='';
+    document.getElementById('travelEndDate').value='';
+    document.getElementById('travelBudget').value='';
+    document.getElementById('travelNote').value='';
+    this.render();
+    this.renderStats();
+    Store.toast('✈️ 已添加旅行：'+dest);
+  },
+  setStatus(i, s){
+    this.trips[i].status = s;
+    Store.set('travelTrips', this.trips);
+    this.render();
+    this.renderStats();
+  },
+  setSpent(i, v){
+    this.trips[i].spent = parseFloat(v)||0;
+    Store.set('travelTrips', this.trips);
+    this.render();
+  },
+  del(i){
+    this.trips.splice(i,1);
+    Store.set('travelTrips', this.trips);
+    this.render();
+    this.renderStats();
+  },
+  render(){
+    const list = document.getElementById('travelList');
+    const empty = document.getElementById('travelEmpty');
+    list.innerHTML='';
+    empty.style.display = this.trips.length? 'none':'block';
+    this.trips.forEach((t,i)=>{
+      const div = document.createElement('div');
+      div.style.cssText = 'padding:14px;border:1px solid var(--border);border-radius:10px;margin-bottom:10px;background:#fafbfc;';
+      const days = t.start && t.end ? Math.ceil((new Date(t.end)-new Date(t.start))/86400000)+1 : 0;
+      const budgetPct = t.budget>0 ? Math.min(100, Math.round(t.spent/t.budget*100)) : 0;
+      const overBudget = t.budget>0 && t.spent > t.budget;
+      div.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
+          <div>
+            <span style="font-size:16px;font-weight:700;">🌍 ${this.escape(t.dest)}</span>
+            <span style="font-size:11px;padding:2px 8px;border-radius:10px;margin-left:6px;background:${this.statusBg[t.status]};color:${this.statusColor[t.status]};font-weight:600;">${this.statusMap[t.status]}</span>
+          </div>
+          <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Travel.del(${i})">✕</button>
+        </div>
+        ${t.start ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:4px;">📅 ${t.start}${t.end?' ~ '+t.end:''}${days?`（${days}天）`:''}</div>`:''}
+        ${t.note ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px;">📝 ${this.escape(t.note)}</div>`:''}
+        ${t.budget>0 ? `
+          <div style="margin-top:6px;">
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-sec);margin-bottom:3px;">
+              <span>预算 ¥${t.budget.toFixed(0)} / 已花 ¥${t.spent.toFixed(0)}</span>
+              <span style="color:${overBudget?'var(--danger)':'var(--text-sec)'};">${budgetPct}%</span>
+            </div>
+            <div class="progress-bar" style="height:5px;"><div class="progress-fill" style="width:${budgetPct}%;background:${overBudget?'var(--danger)':'var(--primary)'};"></div></div>
+            <input type="number" placeholder="更新实际花费" style="width:100%;font-size:12px;margin-top:4px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;" onchange="Travel.setSpent(${i}, this.value)" value="${t.spent||''}">
+          </div>
+        `:''}
+        <div style="display:flex;gap:4px;margin-top:8px;">
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='planning'?'var(--primary)':'var(--border)'};color:${t.status==='planning'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'planning')">计划中</button>
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='ongoing'?'var(--primary)':'var(--border)'};color:${t.status==='ongoing'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'ongoing')">进行中</button>
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='done'?'var(--primary)':'var(--border)'};color:${t.status==='done'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'done')">已完成</button>
+        </div>`;
+      list.appendChild(div);
+    });
+  },
+  renderStats(){
+    const done = this.trips.filter(t=>t.status==='done').length;
+    const planning = this.trips.filter(t=>t.status==='planning').length;
+    document.getElementById('travelTotal').textContent = this.trips.length;
+    document.getElementById('travelDone').textContent = done;
+    document.getElementById('travelPlanning').textContent = planning;
+  },
+  addPack(){
+    const item = document.getElementById('packItem').value.trim();
+    if(!item){ Store.toast('请输入物品名称'); return; }
+    this.packs.push({name:item, checked:false});
+    Store.set('travelPacks', this.packs);
+    document.getElementById('packItem').value='';
+    this.renderPacks();
+    Store.toast('🎒 已添加：'+item);
+  },
+  togglePack(i){
+    this.packs[i].checked = !this.packs[i].checked;
+    Store.set('travelPacks', this.packs);
+    this.renderPacks();
+  },
+  delPack(i){
+    this.packs.splice(i,1);
+    Store.set('travelPacks', this.packs);
+    this.renderPacks();
+  },
+  renderPacks(){
+    const list = document.getElementById('packList');
+    const empty = document.getElementById('packEmpty');
+    list.innerHTML='';
+    empty.style.display = this.packs.length? 'none':'block';
+    const catIcons = {'护照':'🛂','身份证':'🪪','手机':'📱','充电器':'🔌','充电宝':'🔋','耳机':'🎧','相机':'📷','衣服':'👕','鞋子':'👟','药品':'💊','雨伞':'☂️','口罩':'😷'};
+    this.packs.forEach((p,i)=>{
+      const div = document.createElement('div');
+      div.className = 'record-row';
+      const icon = catIcons[Object.keys(catIcons).find(k=>p.name.includes(k))] || '📦';
+      div.innerHTML = `
+        <input type="checkbox" ${p.checked?'checked':''} onchange="Travel.togglePack(${i})" style="width:18px;height:18px;cursor:pointer;accent-color:var(--primary);">
+        <div class="r-info">
+          <div class="r-title" style="${p.checked?'text-decoration:line-through;color:var(--text-light);':''}">${icon} ${this.escape(p.name)}</div>
+        </div>
+        <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Travel.delPack(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  addJournal(){
+    const dest = document.getElementById('travelJournalDest').value.trim();
+    const text = document.getElementById('travelJournalText').value.trim();
+    if(!text){ Store.toast('请输入旅行记录'); return; }
+    this.journals.unshift({dest, text, date:Store.today(), time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})});
+    Store.set('travelJournals', this.journals);
+    document.getElementById('travelJournalDest').value='';
+    document.getElementById('travelJournalText').value='';
+    this.renderJournals();
+    Store.toast('💡 已记录旅行小记');
+  },
+  delJournal(i){
+    this.journals.splice(i,1);
+    Store.set('travelJournals', this.journals);
+    this.renderJournals();
+  },
+  renderJournals(){
+    const list = document.getElementById('journalList');
+    const empty = document.getElementById('journalEmpty');
+    list.innerHTML='';
+    empty.style.display = this.journals.length? 'none':'block';
+    this.journals.forEach((j,i)=>{
+      const div = document.createElement('div');
+      div.className = 'record-row';
+      div.innerHTML = `
+        <div class="r-icon">✈️</div>
+        <div class="r-info">
+          <div class="r-title">${j.dest?'🌍 '+this.escape(j.dest)+' — ':''}${this.escape(j.text)}</div>
+          <div class="r-sub">${j.date} ${j.time||''}</div>
+        </div>
+        <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Travel.delJournal(${i})">✕</button>`;
+      list.appendChild(div);
+    });
+  },
+  escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+};
+
 /* ========== INIT ========== */
 window.addEventListener('DOMContentLoaded',()=>{
   // Restore sync time
@@ -1584,6 +1817,7 @@ window.addEventListener('DOMContentLoaded',()=>{
   Fitness.init();
   Savings.init();
   Accounting.init();
+  Travel.init();
 });
 </script>
 </body>
