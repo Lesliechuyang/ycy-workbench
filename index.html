@@ -1816,9 +1816,21 @@ const Travel = {
     Store.set('travelTrips', this.trips);
     this.render();
   },
+  _daySaveTimer: null,
+  onDayInput(tripIdx, dayIdx, field){
+    const t = this.trips[tripIdx];
+    if(!t || !t.days || !t.days[dayIdx]) return;
+    const capField = field.charAt(0).toUpperCase()+field.slice(1);
+    const el = document.getElementById('day'+capField+'_'+tripIdx+'_'+dayIdx);
+    if(!el) return;
+    t.days[dayIdx][field] = el.value;
+    clearTimeout(this._daySaveTimer);
+    this._daySaveTimer = setTimeout(()=>{ Store.set('travelTrips', this.trips); }, 400);
+  },
   editDayPlan(tripIdx, dayIdx, silent){
     const t = this.trips[tripIdx];
     if(!t || !t.days || !t.days[dayIdx]) return;
+    clearTimeout(this._daySaveTimer);
     const routeEl = document.getElementById('dayRoute_'+tripIdx+'_'+dayIdx);
     const chargeEl = document.getElementById('dayCharge_'+tripIdx+'_'+dayIdx);
     const stayEl = document.getElementById('dayStay_'+tripIdx+'_'+dayIdx);
@@ -1863,6 +1875,7 @@ const Travel = {
               <label style="font-size:11px;color:var(--text-sec);font-weight:600;">${f.label}</label>
               <textarea class="input" id="day${f.key}_${i}_${di}" placeholder="${f.ph}" 
                 style="width:100%;min-height:36px;font-size:12px;padding:5px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;margin-top:2px;"
+                oninput="Travel.onDayInput(${i},${di},'${f.key}')"
                 onblur="Travel.editDayPlan(${i},${di},true)">${this.escape(d[f.key]||'')}</textarea>
             </div>`).join('');
           dayPlansHtml += `
@@ -2155,8 +2168,16 @@ const Sync = {
         if (changed) {
           this.updateStatus('已从云端同步');
           if (!silent) Store.toast('☁️ 已从云端同步 ' + changedKeys.length + ' 项数据');
-          // Reload to apply changes
-          setTimeout(() => location.reload(), silent ? 300 : 1000);
+          // Don't reload if user is editing — flush in-memory data to localStorage instead
+          const ae = document.activeElement;
+          const editing = ae && (ae.tagName === 'TEXTAREA' || (ae.tagName === 'INPUT' && ae.type === 'text'));
+          if (editing && Travel._daySaveTimer) {
+            clearTimeout(Travel._daySaveTimer);
+            Travel._daySaveTimer = null;
+            Store.set('travelTrips', Travel.trips);
+          } else if (!editing) {
+            setTimeout(() => location.reload(), silent ? 300 : 1000);
+          }
         } else {
           this.updateStatus('已是最新 ' + new Date().toLocaleTimeString('zh-CN'));
           if (!silent) Store.toast('✅ 数据已是最新');
