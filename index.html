@@ -1682,6 +1682,14 @@ const Travel = {
     this.renderStats();
     this.renderPacks();
     this.renderJournals();
+    // Flush pending saves before page unload (refresh/close)
+    window.addEventListener('beforeunload', () => {
+      if (this._daySaveTimer) {
+        clearTimeout(this._daySaveTimer);
+        this._daySaveTimer = null;
+        Store.set('travelTrips', this.trips);
+      }
+    });
   },
   add(){
     const dest = document.getElementById('travelDest').value.trim();
@@ -1873,7 +1881,7 @@ const Travel = {
           const fieldsHtml = fields.map(f => `
             <div style="margin-bottom:4px;">
               <label style="font-size:11px;color:var(--text-sec);font-weight:600;">${f.label}</label>
-              <textarea class="input" id="day${f.key}_${i}_${di}" placeholder="${f.ph}" 
+              <textarea class="input" id="day${f.key.charAt(0).toUpperCase()}${f.key.slice(1)}_${i}_${di}" placeholder="${f.ph}" 
                 style="width:100%;min-height:36px;font-size:12px;padding:5px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;margin-top:2px;"
                 oninput="Travel.onDayInput(${i},${di},'${f.key}')"
                 onblur="Travel.editDayPlan(${i},${di},true)">${this.escape(d[f.key]||'')}</textarea>
