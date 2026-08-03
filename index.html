@@ -242,6 +242,21 @@ tr:hover td{background:#f9fafb;}
 
 .inline-form{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
 .inline-form input{flex:1;min-width:120px;}
+
+/* ========== SYNC MODAL ========== */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--bg-card);border-radius:14px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2);}
+.modal-title{font-size:18px;font-weight:700;margin-bottom:12px;}
+.modal-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:8px;box-sizing:border-box;}
+.sidebar-sync{padding:10px 16px;border-top:1px solid var(--border);}
+.sidebar-sync .sync-status{font-size:11px;color:var(--text-light);margin-bottom:6px;text-align:center;}
+.sidebar-sync .btn{width:100%;margin-bottom:4px;font-size:12px;padding:6px 10px;}
+.sync-indicator{display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;margin-right:4px;vertical-align:middle;}
+.sync-indicator.on{background:#22c55e;animation:pulse 2s infinite;}
+.sync-indicator.off{background:#ccc;}
+.sync-indicator.err{background:#ef4444;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
 </style>
 </head>
 <body>
@@ -270,7 +285,11 @@ tr:hover td{background:#f9fafb;}
     <div class="nav-item" data-section="accounting"><span class="icon">🧾</span>每日记账</div>
     <div class="nav-item" data-section="travel"><span class="icon">✈️</span>旅行计划</div>
   </nav>
-  <div class="sidebar-footer">WorkBuddy · 本地数据持久化</div>
+  <div class="sidebar-sync">
+    <div class="sync-status" id="globalSyncStatus"><span class="sync-indicator off" id="syncDot"></span> 未设置同步</div>
+    <button class="btn btn-primary btn-sm" onclick="Sync.push()">☁️ 立即同步</button>
+    <button class="btn btn-sm" style="margin-top:4px;" onclick="Sync.openSettings()">⚙️ 同步设置</button>
+  </div>
 </div>
 
 <!-- ========== MAIN ========== -->
@@ -300,9 +319,9 @@ tr:hover td{background:#f9fafb;}
       </div>
       <div class="card">
         <div class="card-title">☁️ 云端同步</div>
-        <p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">将所有数据同步到手机云端，跨设备查看。</p>
+        <p style="font-size:13px;color:var(--text-sec);margin-bottom:12px;">将所有数据同步到云端，电脑手机数据实时同步。</p>
         <button class="btn btn-primary sync-btn" id="syncBtn" onclick="Plan.sync()">
-          <span class="spin">⟳</span><span>同步到手机云端</span>
+          <span class="spin">⟳</span><span>☁️ 立即同步到云端</span>
         </button>
         <p style="font-size:12px;color:var(--text-light);margin-top:8px;" id="syncStatus">上次同步：从未</p>
       </div>
@@ -743,13 +762,40 @@ tr:hover td{background:#f9fafb;}
 
 </div><!-- /main -->
 
+<!-- ========== SYNC MODAL ========== -->
+<div class="modal-overlay" id="syncModal">
+  <div class="modal-box">
+    <div class="modal-title">☁️ 云端同步设置</div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:12px;line-height:1.6;">
+      设置一个同步密钥，在所有设备上输入相同的密钥即可同步数据。<br>
+      密钥同时作为数据标识和密码，请妥善保管，不要泄露给他人。
+    </p>
+    <input type="text" id="syncKeyInput" placeholder="输入同步密钥（如 ycy2026）" onkeydown="if(event.key==='Enter')Sync.saveSettings()">
+    <div id="syncKeyStatus" style="font-size:12px;color:var(--text-light);margin-bottom:12px;"></div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-primary" style="flex:1;" onclick="Sync.saveSettings()">保存</button>
+      <button class="btn" style="flex:1;" onclick="Sync.closeSettings()">取消</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
 /* ========== UTIL ========== */
 const Store = {
   get(key, def){ try{ const v = localStorage.getItem('ycy_'+key); return v?JSON.parse(v):def; }catch(e){ return def; } },
-  set(key, val){ localStorage.setItem('ycy_'+key, JSON.stringify(val)); },
+  set(key, val){
+    localStorage.setItem('ycy_'+key, JSON.stringify(val));
+    // Track modification timestamp for sync merge
+    try {
+      const meta = JSON.parse(localStorage.getItem('ycy_meta') || '{}');
+      meta[key] = Date.now();
+      localStorage.setItem('ycy_meta', JSON.stringify(meta));
+    } catch(e) {}
+    // Trigger auto-sync (debounced)
+    if (window.Sync && Sync.key) Sync.schedulePush();
+  },
   today(){ return new Date().toISOString().slice(0,10); },
   weekStart(){ const d=new Date(); const day=d.getDay()||7; d.setDate(d.getDate()-day+1); return d.toISOString().slice(0,10); },
   toast(msg){ const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show'); setTimeout(()=>t.classList.remove('show'),2200); }
@@ -853,16 +899,12 @@ const Plan = {
     document.getElementById('weekRateBar').style.width = rate+'%';
   },
   sync(){
-    const btn = document.getElementById('syncBtn');
-    btn.classList.add('syncing');
-    btn.querySelector('span:last-child').textContent = '同步中...';
-    setTimeout(()=>{
-      btn.classList.remove('syncing');
-      btn.querySelector('span:last-child').textContent = '同步到手机云端';
-      document.getElementById('syncStatus').textContent = '上次同步：'+new Date().toLocaleString('zh-CN');
-      Store.set('lastSync', new Date().toISOString());
-      Store.toast('✅ 数据已同步到云端');
-    }, 1500);
+    if (!Sync.key) {
+      Store.toast('⚠️ 请先设置同步密钥');
+      Sync.openSettings();
+      return;
+    }
+    Sync.push();
   },
   escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 };
@@ -1803,11 +1845,193 @@ const Travel = {
   escape(s){ return s.replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 };
 
+/* ========== CLOUD SYNC ========== */
+const Sync = {
+  key: localStorage.getItem('sync_key') || '',
+  pushTimer: null,
+  isSyncing: false,
+  _ready: false,
+
+  init() {
+    this.updateUI();
+    // Auto-pull on page load if key is set
+    if (this.key) {
+      this.updateStatus('同步中...');
+      this.pull(true).finally(() => { this._ready = true; });
+    } else {
+      this._ready = true;
+    }
+  },
+
+  setKey(key) {
+    this.key = key;
+    localStorage.setItem('sync_key', key);
+    this.updateUI();
+    Store.toast('✅ 同步密钥已设置，正在同步...');
+    this.pull();
+  },
+
+  collectData() {
+    const data = {};
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith('ycy_') && k !== 'ycy_meta' && k !== 'ycy_lastSync') {
+        data[k] = localStorage.getItem(k);
+      }
+    }
+    let meta = {};
+    try { meta = JSON.parse(localStorage.getItem('ycy_meta') || '{}'); } catch(e) {}
+    return { data, meta };
+  },
+
+  async push() {
+    if (!this.key) {
+      Store.toast('⚠️ 请先设置同步密钥');
+      this.openSettings();
+      return;
+    }
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+    this.updateStatus('正在上传...');
+
+    const { data, meta } = this.collectData();
+    try {
+      const res = await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: this.key, data, meta })
+      });
+      const json = await res.json();
+      if (json.success) {
+        localStorage.setItem('sync_last_push', json.modified.toString());
+        this.updateStatus('已同步 ' + new Date().toLocaleTimeString('zh-CN'));
+        Store.toast('☁️ 数据已同步到云端');
+      } else {
+        this.updateStatus('同步失败');
+        Store.toast('⚠️ 同步失败：' + (json.error || '未知错误'));
+      }
+    } catch (e) {
+      this.updateStatus('同步失败');
+      Store.toast('⚠️ 网络错误：' + e.message);
+    }
+    this.isSyncing = false;
+  },
+
+  async pull(silent) {
+    if (!this.key) return;
+    if (this.isSyncing) return;
+    this.isSyncing = true;
+
+    try {
+      const res = await fetch('/api/sync?key=' + encodeURIComponent(this.key));
+      const json = await res.json();
+
+      if (json.data) {
+        const localMeta = JSON.parse(localStorage.getItem('ycy_meta') || '{}');
+        let changed = false;
+        let changedKeys = [];
+
+        Object.keys(json.data).forEach(k => {
+          const shortKey = k.replace('ycy_', '');
+          const localTs = localMeta[shortKey] || 0;
+          const cloudTs = (json.meta && json.meta[shortKey]) || 0;
+          if (cloudTs > localTs) {
+            localStorage.setItem(k, json.data[k]);
+            changed = true;
+            changedKeys.push(shortKey);
+          }
+        });
+
+        // Merge meta timestamps
+        const mergedMeta = { ...localMeta };
+        if (json.meta) {
+          Object.keys(json.meta).forEach(k => {
+            mergedMeta[k] = Math.max(mergedMeta[k] || 0, json.meta[k]);
+          });
+        }
+        localStorage.setItem('ycy_meta', JSON.stringify(mergedMeta));
+
+        if (changed) {
+          this.updateStatus('已从云端同步');
+          if (!silent) Store.toast('☁️ 已从云端同步 ' + changedKeys.length + ' 项数据');
+          // Reload to apply changes
+          setTimeout(() => location.reload(), silent ? 300 : 1000);
+        } else {
+          this.updateStatus('已是最新 ' + new Date().toLocaleTimeString('zh-CN'));
+          if (!silent) Store.toast('✅ 数据已是最新');
+        }
+      } else {
+        // No cloud data yet, push local to cloud
+        this.updateStatus('首次同步，上传数据...');
+        if (!silent) {
+          this.isSyncing = false;
+          this.push();
+          return;
+        }
+      }
+    } catch (e) {
+      this.updateStatus('同步失败');
+      if (!silent) Store.toast('⚠️ 同步失败：' + e.message);
+    }
+    this.isSyncing = false;
+  },
+
+  schedulePush() {
+    if (!this._ready) return; // Don't push during initial pull
+    clearTimeout(this.pushTimer);
+    this.pushTimer = setTimeout(() => this.push(), 3000);
+  },
+
+  updateStatus(text) {
+    const el = document.getElementById('globalSyncStatus');
+    if (el) {
+      const dot = this.key ? 'on' : 'off';
+      el.innerHTML = '<span class="sync-indicator ' + dot + '" id="syncDot"></span> ' + text;
+    }
+    const el2 = document.getElementById('syncStatus');
+    if (el2) el2.textContent = text;
+  },
+
+  updateUI() {
+    if (this.key) {
+      this.updateStatus('已连接');
+    } else {
+      this.updateStatus('未设置同步');
+    }
+    const input = document.getElementById('syncKeyInput');
+    if (input) input.value = this.key;
+    const status = document.getElementById('syncKeyStatus');
+    if (status) status.textContent = this.key ? '✅ 当前密钥：' + this.key : '⚠️ 尚未设置同步密钥';
+  },
+
+  openSettings() {
+    document.getElementById('syncModal').classList.add('show');
+    const input = document.getElementById('syncKeyInput');
+    if (input) {
+      input.value = this.key;
+      setTimeout(() => input.focus(), 100);
+    }
+    const status = document.getElementById('syncKeyStatus');
+    if (status) status.textContent = this.key ? '✅ 当前密钥：' + this.key : '⚠️ 尚未设置同步密钥';
+  },
+
+  closeSettings() {
+    document.getElementById('syncModal').classList.remove('show');
+  },
+
+  saveSettings() {
+    const key = document.getElementById('syncKeyInput').value.trim();
+    if (!key) { Store.toast('⚠️ 请输入同步密钥'); return; }
+    if (key.length < 3) { Store.toast('⚠️ 密钥至少3个字符'); return; }
+    this.setKey(key);
+    this.closeSettings();
+  }
+};
+
 /* ========== INIT ========== */
 window.addEventListener('DOMContentLoaded',()=>{
-  // Restore sync time
-  const lastSync = Store.get('lastSync', null);
-  if(lastSync){ document.getElementById('syncStatus').textContent = '上次同步：'+new Date(lastSync).toLocaleString('zh-CN'); }
+  // Init sync first (auto-pull before rendering modules)
+  Sync.init();
   // Init all modules
   Plan.init();
   Inspiration.init();
