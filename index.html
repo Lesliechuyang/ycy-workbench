@@ -1686,15 +1686,19 @@ const Travel = {
   add(){
     const dest = document.getElementById('travelDest').value.trim();
     if(!dest){ Store.toast('请输入目的地'); return; }
+    const start = document.getElementById('travelStartDate').value;
+    const end = document.getElementById('travelEndDate').value;
     const trip = {
       dest,
-      start: document.getElementById('travelStartDate').value,
-      end: document.getElementById('travelEndDate').value,
+      start,
+      end,
       budget: parseFloat(document.getElementById('travelBudget').value)||0,
       status: document.getElementById('travelStatus').value,
       note: document.getElementById('travelNote').value.trim(),
       spent: 0,
-      created: Store.today()
+      created: Store.today(),
+      days: this.genDays(start, end),
+      expanded: false
     };
     this.trips.unshift(trip);
     Store.set('travelTrips', this.trips);
@@ -1706,6 +1710,37 @@ const Travel = {
     this.render();
     this.renderStats();
     Store.toast('✈️ 已添加旅行：'+dest);
+  },
+  genDays(start, end){
+    if(!start || !end) return [];
+    const days = [];
+    let d = new Date(start);
+    const endD = new Date(end);
+    let idx = 1;
+    while(d <= endD){
+      days.push({
+        date: d.toISOString().slice(0,10),
+        label: 'DAY ' + idx,
+        plan: ''
+      });
+      d.setDate(d.getDate()+1);
+      idx++;
+    }
+    return days;
+  },
+  regenDays(i){
+    const t = this.trips[i];
+    if(!t) return;
+    const newDays = this.genDays(t.start, t.end);
+    // Preserve existing plans where dates match
+    if(t.days){
+      newDays.forEach(nd => {
+        const old = t.days.find(od => od.date === nd.date);
+        if(old) nd.plan = old.plan;
+      });
+    }
+    t.days = newDays;
+    Store.set('travelTrips', this.trips);
   },
   edit(i){
     const t = this.trips[i];
@@ -1734,11 +1769,17 @@ const Travel = {
     if(!t) return;
     const dest = document.getElementById('editDest_'+i).value.trim();
     if(!dest){ Store.toast('目的地不能为空'); return; }
+    const oldStart = t.start;
+    const oldEnd = t.end;
     t.dest = dest;
     t.start = document.getElementById('editStart_'+i).value;
     t.end = document.getElementById('editEnd_'+i).value;
     t.budget = parseFloat(document.getElementById('editBudget_'+i).value)||0;
     t.note = document.getElementById('editNote_'+i).value.trim();
+    // Regenerate days if dates changed
+    if(t.start !== oldStart || t.end !== oldEnd){
+      this.regenDays(i);
+    }
     Store.set('travelTrips', this.trips);
     this.render();
     this.renderStats();
@@ -1761,6 +1802,21 @@ const Travel = {
     this.render();
     this.renderStats();
   },
+  toggleDays(i){
+    this.trips[i].expanded = !this.trips[i].expanded;
+    Store.set('travelTrips', this.trips);
+    this.render();
+  },
+  editDayPlan(tripIdx, dayIdx){
+    const t = this.trips[tripIdx];
+    if(!t || !t.days || !t.days[dayIdx]) return;
+    const input = document.getElementById('dayPlan_'+tripIdx+'_'+dayIdx);
+    if(input){
+      t.days[dayIdx].plan = input.value;
+      Store.set('travelTrips', this.trips);
+      Store.toast('✅ '+t.days[dayIdx].label+' 计划已保存');
+    }
+  },
   render(){
     const list = document.getElementById('travelList');
     const empty = document.getElementById('travelEmpty');
@@ -1772,14 +1828,39 @@ const Travel = {
       const days = t.start && t.end ? Math.ceil((new Date(t.end)-new Date(t.start))/86400000)+1 : 0;
       const budgetPct = t.budget>0 ? Math.min(100, Math.round(t.spent/t.budget*100)) : 0;
       const overBudget = t.budget>0 && t.spent > t.budget;
+      const hasDays = t.days && t.days.length > 0;
+      const expanded = t.expanded;
+      
+      // Build day plan HTML
+      let dayPlansHtml = '';
+      if(hasDays && expanded){
+        dayPlansHtml = '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;">';
+        t.days.forEach((d, di)=>{
+          const weekday = ['日','一','二','三','四','五','六'][new Date(d.date).getDay()];
+          dayPlansHtml += `
+            <div style="margin-bottom:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:700;color:var(--primary);">${d.label}</span>
+                <span style="font-size:11px;color:var(--text-sec);">${d.date} 周${weekday}</span>
+              </div>
+              <textarea class="input" id="dayPlan_${i}_${di}" placeholder="输入当天计划（行程、景点、餐厅等）..." 
+                style="width:100%;min-height:50px;font-size:12px;padding:6px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;"
+                onblur="Travel.editDayPlan(${i},${di})">${this.escape(d.plan||'')}</textarea>
+            </div>`;
+        });
+        dayPlansHtml += '</div>';
+      }
+      
       div.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
           <div>
             <span style="font-size:16px;font-weight:700;">🌍 ${this.escape(t.dest)}</span>
             <span style="font-size:11px;padding:2px 8px;border-radius:10px;margin-left:6px;background:${this.statusBg[t.status]};color:${this.statusColor[t.status]};font-weight:600;">${this.statusMap[t.status]}</span>
           </div>
-          <button style="font-size:13px;background:none;border:none;color:var(--primary);cursor:pointer;margin-right:4px;" onclick="Travel.edit(${i})">✏️</button>
-          <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Travel.del(${i})">✕</button>
+          <div>
+            <button style="font-size:13px;background:none;border:none;color:var(--primary);cursor:pointer;margin-right:4px;" onclick="Travel.edit(${i})">✏️</button>
+            <button style="font-size:14px;background:none;border:none;color:var(--danger);cursor:pointer;" onclick="Travel.del(${i})">✕</button>
+          </div>
         </div>
         ${t.start ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:4px;">📅 ${t.start}${t.end?' ~ '+t.end:''}${days?`（${days}天）`:''}</div>`:''}
         ${t.note ? `<div style="font-size:12px;color:var(--text-sec);margin-bottom:6px;">📝 ${this.escape(t.note)}</div>`:''}
@@ -1793,6 +1874,12 @@ const Travel = {
             <input type="number" placeholder="更新实际花费" style="width:100%;font-size:12px;margin-top:4px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;" onchange="Travel.setSpent(${i}, this.value)" value="${t.spent||''}">
           </div>
         `:''}
+        ${hasDays ? `
+          <button class="btn btn-sm" style="font-size:11px;padding:3px 10px;margin-top:8px;background:var(--border);color:var(--text-sec);border:none;border-radius:6px;cursor:pointer;" onclick="Travel.toggleDays(${i})">
+            ${expanded ? '📂 收起每日计划' : '📋 展开每日计划（'+t.days.length+'天）'}
+          </button>
+        `:''}
+        ${dayPlansHtml}
         <div style="display:flex;gap:4px;margin-top:8px;">
           <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='planning'?'var(--primary)':'var(--border)'};color:${t.status==='planning'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'planning')">计划中</button>
           <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='ongoing'?'var(--primary)':'var(--border)'};color:${t.status==='ongoing'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'ongoing')">进行中</button>
