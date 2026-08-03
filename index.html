@@ -249,6 +249,22 @@ tr:hover td{background:#f9fafb;}
 .modal-box{background:var(--bg-card);border-radius:14px;padding:24px;max-width:400px;width:100%;box-shadow:0 8px 32px rgba(0,0,0,.2);}
 .modal-title{font-size:18px;font-weight:700;margin-bottom:12px;}
 .modal-box input{width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:8px;box-sizing:border-box;}
+/* Travel detail full-screen page */
+.trip-detail-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:var(--bg);z-index:2000;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.trip-detail-overlay.show{display:block;}
+.trip-detail-header{position:sticky;top:0;background:var(--bg-card);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:12px;z-index:10;box-shadow:0 2px 8px rgba(0,0,0,.06);}
+.trip-detail-header .back-btn{font-size:20px;background:none;border:none;cursor:pointer;color:var(--primary);padding:4px 8px;border-radius:8px;}
+.trip-detail-header .back-btn:hover{background:var(--primary-light);}
+.trip-detail-header h2{font-size:18px;font-weight:700;flex:1;margin:0;}
+.trip-detail-body{max-width:800px;margin:0 auto;padding:16px 20px 60px;}
+.trip-detail-body .card{margin-bottom:16px;}
+.trip-day-card{padding:12px 14px;background:var(--bg-card);border:1px solid var(--border);border-radius:10px;margin-bottom:10px;}
+.trip-day-card .day-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.trip-day-card .day-label{font-size:15px;font-weight:700;color:var(--primary);}
+.trip-day-card .day-date{font-size:12px;color:var(--text-sec);}
+.trip-day-card .field-row{margin-bottom:6px;}
+.trip-day-card .field-label{font-size:12px;color:var(--text-sec);font-weight:600;margin-bottom:2px;}
+.trip-day-card textarea{width:100%;min-height:40px;font-size:13px;padding:6px 10px;resize:vertical;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;font-family:inherit;}
 .sidebar-sync{padding:10px 16px;border-top:1px solid var(--border);}
 .sidebar-sync .sync-status{font-size:11px;color:var(--text-light);margin-bottom:6px;text-align:center;}
 .sidebar-sync .btn{width:100%;margin-bottom:4px;font-size:12px;padding:6px 10px;}
@@ -761,6 +777,15 @@ tr:hover td{background:#f9fafb;}
 </div>
 
 </div><!-- /main -->
+
+<!-- ========== TRIP DETAIL PAGE ========== -->
+<div class="trip-detail-overlay" id="tripDetailOverlay">
+  <div class="trip-detail-header">
+    <button class="back-btn" onclick="Travel.closeDetail()">← 返回</button>
+    <h2 id="tripDetailTitle">旅行详情</h2>
+  </div>
+  <div class="trip-detail-body" id="tripDetailBody"></div>
+</div>
 
 <!-- ========== SYNC MODAL ========== -->
 <div class="modal-overlay" id="syncModal">
@@ -1690,6 +1715,27 @@ const Travel = {
         Store.set('travelTrips', this.trips);
       }
     });
+    // Browser back button closes detail overlay
+    window.addEventListener('popstate', () => {
+      const overlay = document.getElementById('tripDetailOverlay');
+      if (overlay.classList.contains('show')) {
+        overlay.classList.remove('show');
+        document.body.style.overflow = '';
+        if(this._daySaveTimer){
+          clearTimeout(this._daySaveTimer);
+          this._daySaveTimer = null;
+          Store.set('travelTrips', this.trips);
+        }
+        if(this._detailInfoTimer){
+          clearTimeout(this._detailInfoTimer);
+          this._detailInfoTimer = null;
+        }
+        if(this._detailIdx >= 0) this.saveDetailInfo(this._detailIdx, true);
+        this._detailIdx = -1;
+        this.render();
+        this.renderStats();
+      }
+    });
   },
   add(){
     const dest = document.getElementById('travelDest').value.trim();
@@ -1825,6 +1871,8 @@ const Travel = {
     this.render();
   },
   _daySaveTimer: null,
+  _detailInfoTimer: null,
+  _detailIdx: -1,
   onDayInput(tripIdx, dayIdx, field){
     const t = this.trips[tripIdx];
     if(!t || !t.days || !t.days[dayIdx]) return;
@@ -1852,6 +1900,165 @@ const Travel = {
       if(!silent) Store.toast('✅ '+t.days[dayIdx].label+' 计划已保存');
     }
   },
+  openDetail(i){
+    this._detailIdx = i;
+    this.renderDetail(i);
+    document.getElementById('tripDetailOverlay').classList.add('show');
+    document.body.style.overflow = 'hidden';
+    document.getElementById('tripDetailOverlay').scrollTop = 0;
+    // Support browser back button
+    history.pushState({tripDetail: true}, '');
+  },
+  closeDetail(){
+    // Flush any pending save
+    if(this._daySaveTimer){
+      clearTimeout(this._daySaveTimer);
+      this._daySaveTimer = null;
+      Store.set('travelTrips', this.trips);
+    }
+    if(this._detailInfoTimer){
+      clearTimeout(this._detailInfoTimer);
+      this._detailInfoTimer = null;
+    }
+    // Save detail info fields
+    if(this._detailIdx >= 0){
+      this.saveDetailInfo(this._detailIdx, true);
+    }
+    document.getElementById('tripDetailOverlay').classList.remove('show');
+    document.body.style.overflow = '';
+    this._detailIdx = -1;
+    // Re-render the list to reflect changes
+    this.render();
+    this.renderStats();
+  },
+  onDetailInput(tripIdx, dayIdx, field){
+    const t = this.trips[tripIdx];
+    if(!t || !t.days || !t.days[dayIdx]) return;
+    const el = document.getElementById('dt_'+field+'_'+tripIdx+'_'+dayIdx);
+    if(!el) return;
+    t.days[dayIdx][field] = el.value;
+    clearTimeout(this._daySaveTimer);
+    this._daySaveTimer = setTimeout(()=>{ Store.set('travelTrips', this.trips); }, 400);
+  },
+  saveDetailInfo(i, silent){
+    const t = this.trips[i];
+    if(!t) return;
+    const destEl = document.getElementById('dt_dest_'+i);
+    if(!destEl) return; // not rendered yet
+    const dest = destEl.value.trim();
+    if(!dest){ if(!silent) Store.toast('目的地不能为空'); return; }
+    const oldStart = t.start;
+    const oldEnd = t.end;
+    t.dest = dest;
+    t.start = document.getElementById('dt_start_'+i).value;
+    t.end = document.getElementById('dt_end_'+i).value;
+    t.budget = parseFloat(document.getElementById('dt_budget_'+i).value)||0;
+    t.note = document.getElementById('dt_note_'+i).value.trim();
+    const spentEl = document.getElementById('dt_spent_'+i);
+    if(spentEl) t.spent = parseFloat(spentEl.value)||0;
+    // Regenerate days if dates changed
+    if(t.start !== oldStart || t.end !== oldEnd){
+      this.regenDays(i);
+      this.renderDetail(i); // re-render to show updated days
+    }
+    Store.set('travelTrips', this.trips);
+    if(!silent) Store.toast('✅ 旅行信息已保存');
+  },
+  setDetailStatus(i, s){
+    this.trips[i].status = s;
+    Store.set('travelTrips', this.trips);
+    this.renderDetail(i);
+    this.renderStats();
+  },
+  renderDetail(i){
+    const t = this.trips[i];
+    if(!t){ this.closeDetail(); return; }
+    document.getElementById('tripDetailTitle').textContent = '🌍 ' + t.dest;
+    const body = document.getElementById('tripDetailBody');
+    const days = t.start && t.end ? Math.ceil((new Date(t.end)-new Date(t.start))/86400000)+1 : 0;
+    const budgetPct = t.budget>0 ? Math.min(100, Math.round(t.spent/t.budget*100)) : 0;
+    const overBudget = t.budget>0 && t.spent > t.budget;
+    const hasDays = t.days && t.days.length > 0;
+
+    // Build day cards HTML
+    let daysHtml = '';
+    if(hasDays){
+      daysHtml = '<div class="card"><div class="card-title">📋 每日计划</div>';
+      t.days.forEach((d, di)=>{
+        const weekday = ['日','一','二','三','四','五','六'][new Date(d.date).getDay()];
+        const fields = [
+          {key:'route', label:'🚗 行程', ph:'当天行程安排、景点、交通...'},
+          {key:'charge', label:'🔋 充电', ph:'休息、午休、充电时间...'},
+          {key:'stay', label:'🏨 住宿', ph:'酒店/民宿信息...'},
+          {key:'food', label:'🍜 吃饭', ph:'早餐、午餐、晚餐、餐厅...'}
+        ];
+        const fieldsHtml = fields.map(f => `
+          <div class="field-row">
+            <div class="field-label">${f.label}</div>
+            <textarea id="dt_${f.key}_${i}_${di}" placeholder="${f.ph}"
+              oninput="Travel.onDetailInput(${i},${di},'${f.key}')">${this.escape(d[f.key]||'')}</textarea>
+          </div>`).join('');
+        daysHtml += `
+          <div class="trip-day-card">
+            <div class="day-header">
+              <span class="day-label">${d.label}</span>
+              <span class="day-date">${d.date} 周${weekday}</span>
+            </div>
+            ${fieldsHtml}
+          </div>`;
+      });
+      daysHtml += '</div>';
+    }
+
+    body.innerHTML = `
+      <div class="card">
+        <div class="card-title">✏️ 旅行信息</div>
+        <div class="field-row">
+          <div class="field-label">目的地</div>
+          <input class="input" id="dt_dest_${i}" value="${this.escape(t.dest)}" placeholder="目的地" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;" oninput="Travel._detailInfoTimer&&clearTimeout(Travel._detailInfoTimer);Travel._detailInfoTimer=setTimeout(()=>Travel.saveDetailInfo(${i},true),600)">
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div class="field-label">开始日期</div>
+            <input class="input" id="dt_start_${i}" type="date" value="${t.start||''}" style="width:100%;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;" onchange="Travel.saveDetailInfo(${i},true)">
+          </div>
+          <div style="flex:1;">
+            <div class="field-label">结束日期</div>
+            <input class="input" id="dt_end_${i}" type="date" value="${t.end||''}" style="width:100%;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;" onchange="Travel.saveDetailInfo(${i},true)">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;">
+          <div style="flex:1;">
+            <div class="field-label">预算（元）</div>
+            <input class="input" id="dt_budget_${i}" type="number" value="${t.budget||''}" placeholder="0" style="width:100%;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;" oninput="Travel._detailInfoTimer&&clearTimeout(Travel._detailInfoTimer);Travel._detailInfoTimer=setTimeout(()=>Travel.saveDetailInfo(${i},true),600)">
+          </div>
+          <div style="flex:1;">
+            <div class="field-label">已花费（元）</div>
+            <input class="input" id="dt_spent_${i}" type="number" value="${t.spent||''}" placeholder="0" style="width:100%;font-size:13px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;box-sizing:border-box;" oninput="Travel._detailInfoTimer&&clearTimeout(Travel._detailInfoTimer);Travel._detailInfoTimer=setTimeout(()=>Travel.saveDetailInfo(${i},true),600)">
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field-label">备注</div>
+          <input class="input" id="dt_note_${i}" value="${this.escape(t.note||'')}" placeholder="交通方式、住宿、必去景点等" style="width:100%;padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:14px;box-sizing:border-box;" oninput="Travel._detailInfoTimer&&clearTimeout(Travel._detailInfoTimer);Travel._detailInfoTimer=setTimeout(()=>Travel.saveDetailInfo(${i},true),600)">
+        </div>
+        ${t.budget>0 ? `
+          <div style="margin-top:10px;">
+            <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text-sec);margin-bottom:4px;">
+              <span>预算 ¥${t.budget.toFixed(0)} / 已花 ¥${t.spent.toFixed(0)}</span>
+              <span style="color:${overBudget?'var(--danger)':'var(--text-sec)'};font-weight:600;">${budgetPct}%</span>
+            </div>
+            <div class="progress-bar" style="height:6px;"><div class="progress-fill" style="width:${budgetPct}%;background:${overBudget?'var(--danger)':'var(--primary)'};"></div></div>
+          </div>
+        `:''}
+        <div style="display:flex;gap:6px;margin-top:12px;">
+          <button class="btn btn-sm" style="font-size:12px;padding:5px 12px;background:${t.status==='planning'?'var(--primary)':'var(--border)'};color:${t.status==='planning'?'#fff':'var(--text-sec)'};border:none;border-radius:8px;cursor:pointer;" onclick="Travel.setDetailStatus(${i},'planning')">📋 计划中</button>
+          <button class="btn btn-sm" style="font-size:12px;padding:5px 12px;background:${t.status==='ongoing'?'var(--primary)':'var(--border)'};color:${t.status==='ongoing'?'#fff':'var(--text-sec)'};border:none;border-radius:8px;cursor:pointer;" onclick="Travel.setDetailStatus(${i},'ongoing')">🚀 进行中</button>
+          <button class="btn btn-sm" style="font-size:12px;padding:5px 12px;background:${t.status==='done'?'var(--primary)':'var(--border)'};color:${t.status==='done'?'#fff':'var(--text-sec)'};border:none;border-radius:8px;cursor:pointer;" onclick="Travel.setDetailStatus(${i},'done')">✅ 已完成</button>
+        </div>
+      </div>
+      ${daysHtml || '<div class="card"><div class="empty-hint">请设置开始和结束日期来生成每日计划</div></div>'}
+    `;
+  },
   render(){
     const list = document.getElementById('travelList');
     const empty = document.getElementById('travelEmpty');
@@ -1866,41 +2073,12 @@ const Travel = {
       const hasDays = t.days && t.days.length > 0;
       const expanded = t.expanded;
       
-      // Build day plan HTML
-      let dayPlansHtml = '';
-      if(hasDays && expanded){
-        dayPlansHtml = '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;">';
-        t.days.forEach((d, di)=>{
-          const weekday = ['日','一','二','三','四','五','六'][new Date(d.date).getDay()];
-          const fields = [
-            {key:'route', label:'🚗 行程', ph:'当天行程安排、景点、交通...'},
-            {key:'charge', label:'🔋 充电', ph:'休息、午休、充电时间...'},
-            {key:'stay', label:'🏨 住宿', ph:'酒店/民宿信息...'},
-            {key:'food', label:'🍜 吃饭', ph:'早餐、午餐、晚餐、餐厅...'}
-          ];
-          const fieldsHtml = fields.map(f => `
-            <div style="margin-bottom:4px;">
-              <label style="font-size:11px;color:var(--text-sec);font-weight:600;">${f.label}</label>
-              <textarea class="input" id="day${f.key.charAt(0).toUpperCase()}${f.key.slice(1)}_${i}_${di}" placeholder="${f.ph}" 
-                style="width:100%;min-height:36px;font-size:12px;padding:5px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;margin-top:2px;"
-                oninput="Travel.onDayInput(${i},${di},'${f.key}')"
-                onblur="Travel.editDayPlan(${i},${di},true)">${this.escape(d[f.key]||'')}</textarea>
-            </div>`).join('');
-          dayPlansHtml += `
-            <div style="margin-bottom:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--border);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-                <span style="font-size:13px;font-weight:700;color:var(--primary);">${d.label}</span>
-                <span style="font-size:11px;color:var(--text-sec);">${d.date} 周${weekday}</span>
-              </div>
-              ${fieldsHtml}
-            </div>`;
-        });
-        dayPlansHtml += '</div>';
-      }
+      // Build day plan HTML (summary only, detail editing in overlay)
+      const totalFilled = t.days ? t.days.filter(d => (d.route||'')+(d.charge||'')+(d.stay||'')+(d.food||'')).filter(s=>s).length : 0;
       
       div.innerHTML = `
         <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px;">
-          <div>
+          <div style="cursor:pointer;" onclick="Travel.openDetail(${i})">
             <span style="font-size:16px;font-weight:700;">🌍 ${this.escape(t.dest)}</span>
             <span style="font-size:11px;padding:2px 8px;border-radius:10px;margin-left:6px;background:${this.statusBg[t.status]};color:${this.statusColor[t.status]};font-weight:600;">${this.statusMap[t.status]}</span>
           </div>
@@ -1918,15 +2096,13 @@ const Travel = {
               <span style="color:${overBudget?'var(--danger)':'var(--text-sec)'};">${budgetPct}%</span>
             </div>
             <div class="progress-bar" style="height:5px;"><div class="progress-fill" style="width:${budgetPct}%;background:${overBudget?'var(--danger)':'var(--primary)'};"></div></div>
-            <input type="number" placeholder="更新实际花费" style="width:100%;font-size:12px;margin-top:4px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;" onchange="Travel.setSpent(${i}, this.value)" value="${t.spent||''}">
           </div>
         `:''}
         ${hasDays ? `
-          <button class="btn btn-sm" style="font-size:11px;padding:3px 10px;margin-top:8px;background:var(--border);color:var(--text-sec);border:none;border-radius:6px;cursor:pointer;" onclick="Travel.toggleDays(${i})">
-            ${expanded ? '📂 收起每日计划' : '📋 展开每日计划（'+t.days.length+'天）'}
+          <button class="btn btn-primary btn-sm" style="font-size:12px;padding:5px 14px;margin-top:8px;border:none;border-radius:8px;cursor:pointer;" onclick="Travel.openDetail(${i})">
+            📝 打开详情编辑${totalFilled>0?'（'+totalFilled+'/'+t.days.length+'天已填）':''}
           </button>
         `:''}
-        ${dayPlansHtml}
         <div style="display:flex;gap:4px;margin-top:8px;">
           <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='planning'?'var(--primary)':'var(--border)'};color:${t.status==='planning'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'planning')">计划中</button>
           <button class="btn btn-sm" style="font-size:11px;padding:3px 8px;background:${t.status==='ongoing'?'var(--primary)':'var(--border)'};color:${t.status==='ongoing'?'#fff':'var(--text-sec)'};border:none;border-radius:6px;cursor:pointer;" onclick="Travel.setStatus(${i},'ongoing')">进行中</button>
