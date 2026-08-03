@@ -2070,6 +2070,23 @@ const Sync = {
         this.pull(true);
       }
     });
+    // Flush pending push before page closes/refreshes
+    window.addEventListener('pagehide', () => {
+      if (this.pushTimer && this.key) {
+        clearTimeout(this.pushTimer);
+        this.pushTimer = null;
+        // Use sendBeacon for reliable delivery during page unload
+        const { data, meta } = this.collectData();
+        const payload = JSON.stringify({ key: this.key, data, meta });
+        navigator.sendBeacon('/api/sync', new Blob([payload], { type: 'application/json' }));
+      }
+      // Also flush travel daily plan pending save
+      if (Travel._daySaveTimer) {
+        clearTimeout(Travel._daySaveTimer);
+        Travel._daySaveTimer = null;
+        Store.set('travelTrips', Travel.trips);
+      }
+    });
   },
 
   startPolling() {
@@ -2209,7 +2226,7 @@ const Sync = {
   schedulePush() {
     if (!this._ready) return; // Don't push during initial pull
     clearTimeout(this.pushTimer);
-    this.pushTimer = setTimeout(() => this.push(true), 3000); // silent auto-push
+    this.pushTimer = setTimeout(() => this.push(true), 2000); // silent auto-push, 2s debounce
   },
 
   updateStatus(text) {

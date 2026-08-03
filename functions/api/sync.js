@@ -41,7 +41,7 @@ export async function onRequestGet(context) {
   }
 }
 
-// POST /api/sync - Push data to cloud
+// POST /api/sync - Push data to cloud (with server-side per-key merge)
 export async function onRequestPost(context) {
   const { request, env } = context;
 
@@ -54,10 +54,49 @@ export async function onRequestPost(context) {
     const kv = env.WORKBENCH_KV;
     if (!kv) return jsonResponse({ error: 'KV not configured' }, 500);
 
-    const modified = Date.now();
-    await kv.put('data:' + key, JSON.stringify({ data, meta: meta || {}, modified }));
+    // Read existing cloud data for per-key merge
+    const existingRaw = await kv.get('data:' + key);
+    let existing = { data: {}, meta: {}, modified: 0 };
+    if (existingRaw) {
+      try { existing = JSON.parse(existingRaw); } catch(e) {}
+    }
+    if (!existing.data) existing.data = {};
+    if (!existing.meta) existing.meta = {};
 
-    return jsonResponse({ success: true, modified });
+    // Merge incoming data per-key using timestamps
+    // Only overwrite a key if incoming timestamp is newer
+    const incomingMeta = meta || {};
+    const mergedData = { ...existing.data };
+    const mergedMeta = { ...existing.meta };
+    let updatedCount = 0;
+
+    Object.keys(data).forEach(k => {
+      const shortKey = k.replace('ycy_', '');
+      const incomingTs = incomingMeta[shortKey] || Date.now();
+      const existingTs = existing.meta[shortKey] || 0;
+
+      if (incomingTs >= existingTs) {
+        mergedData[k] = data[k];
+        mergedMeta[shortKey] = incomingTs;
+        updatedCount++;
+      }
+    });
+
+    // Also merge any meta timestamps that are newer (for keys not in this push)
+    Object.keys(incomingMeta).forEach(k => {
+      if (incomingMeta[k] > (mergedMeta[k] || 0)) {
+        mergedMeta[k] = incomingMeta[k];
+      }
+    });
+
+    const modified = Date.now();
+    await kv.put('data:' + key, JSON.stringify({
+      data: mergedData,
+      meta: mergedMeta,
+      modified
+    }));
+
+    return jsonResponse({ success: true, modified, updatedCount, totalKeys: Object.keys(mergedData).length });
   } catch (e) {
     return jsonResponse({ error: e.message }, 500);
   }
