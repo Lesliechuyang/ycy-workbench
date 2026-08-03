@@ -1721,7 +1721,10 @@ const Travel = {
       days.push({
         date: d.toISOString().slice(0,10),
         label: 'DAY ' + idx,
-        plan: ''
+        route: '',
+        charge: '',
+        stay: '',
+        food: ''
       });
       d.setDate(d.getDate()+1);
       idx++;
@@ -1736,7 +1739,13 @@ const Travel = {
     if(t.days){
       newDays.forEach(nd => {
         const old = t.days.find(od => od.date === nd.date);
-        if(old) nd.plan = old.plan;
+        if(old){
+          // Migrate old 'plan' field to 'route' for backward compat
+          nd.route = old.route || old.plan || '';
+          nd.charge = old.charge || '';
+          nd.stay = old.stay || '';
+          nd.food = old.food || '';
+        }
       });
     }
     t.days = newDays;
@@ -1810,9 +1819,15 @@ const Travel = {
   editDayPlan(tripIdx, dayIdx){
     const t = this.trips[tripIdx];
     if(!t || !t.days || !t.days[dayIdx]) return;
-    const input = document.getElementById('dayPlan_'+tripIdx+'_'+dayIdx);
-    if(input){
-      t.days[dayIdx].plan = input.value;
+    const routeEl = document.getElementById('dayRoute_'+tripIdx+'_'+dayIdx);
+    const chargeEl = document.getElementById('dayCharge_'+tripIdx+'_'+dayIdx);
+    const stayEl = document.getElementById('dayStay_'+tripIdx+'_'+dayIdx);
+    const foodEl = document.getElementById('dayFood_'+tripIdx+'_'+dayIdx);
+    if(routeEl){
+      t.days[dayIdx].route = routeEl.value;
+      t.days[dayIdx].charge = chargeEl ? chargeEl.value : '';
+      t.days[dayIdx].stay = stayEl ? stayEl.value : '';
+      t.days[dayIdx].food = foodEl ? foodEl.value : '';
       Store.set('travelTrips', this.trips);
       Store.toast('✅ '+t.days[dayIdx].label+' 计划已保存');
     }
@@ -1837,15 +1852,26 @@ const Travel = {
         dayPlansHtml = '<div style="margin-top:10px;border-top:1px dashed var(--border);padding-top:10px;">';
         t.days.forEach((d, di)=>{
           const weekday = ['日','一','二','三','四','五','六'][new Date(d.date).getDay()];
+          const fields = [
+            {key:'route', label:'🚗 行程', ph:'当天行程安排、景点、交通...'},
+            {key:'charge', label:'🔋 充电', ph:'休息、午休、充电时间...'},
+            {key:'stay', label:'🏨 住宿', ph:'酒店/民宿信息...'},
+            {key:'food', label:'🍜 吃饭', ph:'早餐、午餐、晚餐、餐厅...'}
+          ];
+          const fieldsHtml = fields.map(f => `
+            <div style="margin-bottom:4px;">
+              <label style="font-size:11px;color:var(--text-sec);font-weight:600;">${f.label}</label>
+              <textarea class="input" id="day${f.key}_${i}_${di}" placeholder="${f.ph}" 
+                style="width:100%;min-height:36px;font-size:12px;padding:5px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;margin-top:2px;"
+                onblur="Travel.editDayPlan(${i},${di})">${this.escape(d[f.key]||'')}</textarea>
+            </div>`).join('');
           dayPlansHtml += `
             <div style="margin-bottom:8px;padding:8px 10px;background:#fff;border-radius:8px;border:1px solid var(--border);">
-              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
                 <span style="font-size:13px;font-weight:700;color:var(--primary);">${d.label}</span>
                 <span style="font-size:11px;color:var(--text-sec);">${d.date} 周${weekday}</span>
               </div>
-              <textarea class="input" id="dayPlan_${i}_${di}" placeholder="输入当天计划（行程、景点、餐厅等）..." 
-                style="width:100%;min-height:50px;font-size:12px;padding:6px 8px;resize:vertical;border:1px solid var(--border);border-radius:6px;"
-                onblur="Travel.editDayPlan(${i},${di})">${this.escape(d.plan||'')}</textarea>
+              ${fieldsHtml}
             </div>`;
         });
         dayPlansHtml += '</div>';
